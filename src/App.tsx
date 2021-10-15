@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import * as MV from './Common/MV';
 import * as INIT from './Common/initShaders';
 import * as UTILS from './Common/webgl-utils';
-import { fragmentShader, vertexShader } from './shaders';
+import { fragmentShader, vertexShader, squaremShaders } from './shaders';
 import { StateManager } from "./util/StateManager";
 var colors = [
   MV.vec4( 0.0, 0.0, 0.0, 1.0 ),  // black
@@ -43,7 +43,7 @@ function initColorPicker() {
   let cBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, 16*4, gl.STATIC_DRAW);
-  let rectColors = [MV.vec4(colors[1]), MV.vec4(colors[3]), MV.vec4(colors[4]), MV.vec4(colors[7])];
+  let rectColors = [MV.vec4(colors[1]), MV.vec4(colors[3]), MV.vec4(colors[4]), MV.vec4(colors[2])];
   gl.bufferSubData(gl.ARRAY_BUFFER, 0, MV.flatten(rectColors));
 
   let vColor = gl.getAttribLocation( program, "vColor");
@@ -62,21 +62,19 @@ function initColorPicker() {
   });
 
   function render() {
-    
     gl.clear( gl.COLOR_BUFFER_BIT );
     gl.drawArrays( gl.TRIANGLE_FAN, 0, 4 );
-
-    // requestAnimationFrame(render);
   }
 }
 
 function init() {
-  var canvas: any;
-  var gl: any;
+  let canvas: any;
+  let gl: any;
 
-  var maxNumTriangles = 200;  
-  var maxNumVertices  = 3 * maxNumTriangles;
-  var index = 0;
+  let maxNumTriangles = 20000;  
+  let maxNumVertices  = 3 * maxNumTriangles;
+  let index = 0;
+  let redraw = false;
 
   canvas = document.getElementById('macanvas');
  
@@ -92,7 +90,7 @@ function init() {
   //
   //  Load shaders and initialize attribute buffers
   //
-  var program = INIT.initShaders( gl, vertexShader, fragmentShader );
+  var program = INIT.initShaders( gl, squaremShaders.vertexShader, squaremShaders.fragmentShader );
   gl.useProgram( program );
   
   var vBuffer = gl.createBuffer();
@@ -110,26 +108,30 @@ function init() {
   var vColor = gl.getAttribLocation( program, "vColor");
   gl.vertexAttribPointer(vColor, 4, gl.FLOAT, false, 0, 0);
   gl.enableVertexAttribArray(vColor);
-  
-  //canvas.addEventListener("click", function(){
-  canvas.addEventListener("click", function(event: any){
-    if (!canvas)
-      throw new Error('No Canvas!');
-      
-      console.log('Canvas clicked!!');
 
-      gl.bindBuffer( gl.ARRAY_BUFFER, vBuffer);
+  canvas.addEventListener("mousedown", function(event: any){
+    redraw = true;
+  });
 
-      console.log('Canvas position', canvas.offsetLeft);
+  canvas.addEventListener("mouseup", function(event: any){
+    redraw = false;
+  });
+  //canvas.addEventListener("mousedown", function(){
+  canvas.addEventListener("mousemove", function(event: any){
+
+    if(redraw) {
+      gl.bindBuffer( gl.ARRAY_BUFFER, vBuffer );
 
       var t = MV.vec2((2*((event.clientX - canvas.offsetLeft)/canvas.width) - 1), 
-           2*((canvas.height-event.clientY + canvas.offsetTop)/canvas.height)-1);
+        2*((canvas.height-event.clientY + canvas.offsetTop)/canvas.height)-1);
+      
       gl.bufferSubData(gl.ARRAY_BUFFER, 8*index, MV.flatten(t));
 
-      gl.bindBuffer( gl.ARRAY_BUFFER, cBuffer);
+      gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
       t = MV.vec4(...StateManager.getInstance().getState('picked-color'));
       gl.bufferSubData(gl.ARRAY_BUFFER, 16*index, MV.flatten(t));
       index++;
+    }
   } );
 
 
@@ -138,7 +140,7 @@ function init() {
   function render() {
     
     gl.clear( gl.COLOR_BUFFER_BIT );
-    gl.drawArrays( gl.TRIANGLE_STRIP, 0, index );
+    gl.drawArrays( gl.POINTS, 0, index );
 
     requestAnimationFrame(render);
   }
@@ -162,6 +164,9 @@ function init() {
 
 export default function App() {
 
+  // Initial value
+  StateManager.getInstance().setState('picked-color', [0, 0, 0, 0]);
+
   useEffect(initColorPicker);
   useEffect(init);
 
@@ -171,7 +176,7 @@ export default function App() {
         <Grid container rowSpacing={1} columns={{ xs: 12, sm: 12, md: 12 }} columnSpacing={{ xs: 1, sm: 2, md: 3 }}>
           
           <Grid item xs={12} sm={6} md={2}>
-            <h2>Start editing to see some magic happen!</h2>
+            <h2>Painter :D</h2>
           </Grid>
 
           <Grid item xs={12} sm={6} md={8}>
@@ -180,7 +185,6 @@ export default function App() {
           
           <Grid item xs={12} sm={6} md={2}>
             <canvas id={'color-picker'}/>
-            <h1>Hello CodeSandbox</h1>
           </Grid>
         
         </Grid>
