@@ -25,10 +25,12 @@ export class StateManager {
         if (!this.state[id])
             this.state[id] = {val: undefined, cbs: []}
     
+        console.log('Old state: ', this.state);
         this.state[id] = {
             ...this.state[id],
             val
         }
+        console.log('New state: ', this.state);
         
         this.state[id].cbs.forEach((cb) => {
             cb();

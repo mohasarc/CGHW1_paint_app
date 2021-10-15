@@ -6,14 +6,6 @@ import * as INIT from './Common/initShaders';
 import * as UTILS from './Common/webgl-utils';
 import { fragmentShader, vertexShader } from './shaders';
 import { StateManager } from "./util/StateManager";
-
-var canvas: any;
-var gl: any;
-
-var maxNumTriangles = 200;  
-var maxNumVertices  = 3 * maxNumTriangles;
-var index = 0;
-
 var colors = [
   MV.vec4( 0.0, 0.0, 0.0, 1.0 ),  // black
   MV.vec4( 1.0, 0.0, 0.0, 1.0 ),  // red
@@ -21,10 +13,70 @@ var colors = [
   MV.vec4( 0.0, 1.0, 0.0, 1.0 ),  // green
   MV.vec4( 0.0, 0.0, 1.0, 1.0 ),  // blue
   MV.vec4( 1.0, 0.0, 1.0, 1.0 ),  // magenta
-  MV.vec4( 0.0, 1.0, 1.0, 1.0)   // cyan
+  MV.vec4( 0.0, 1.0, 1.0, 1.0 ),   // cyan
+  MV.vec4( 1.0, 1.0, 1.0, 1.0 )   // white
 ];
 
+function initColorPicker() {
+  const colorPickerCanvas: any = document.getElementById('color-picker');
+  if (!colorPickerCanvas) throw new Error('Couldn\'t find the canvas');
+  
+  let gl = UTILS.WebGLUtils.setupWebGL(colorPickerCanvas, {preserveDrawingBuffer: true});
+  if ( !gl ) throw new Error( "WebGL isn't available" );
+  
+  gl.viewport( 0, 0, colorPickerCanvas.width, colorPickerCanvas.height );
+  gl.clearColor( 0.8, 0.8, 0.8, 1.0 );
+
+  let program = INIT.initShaders( gl, vertexShader, fragmentShader );
+  gl.useProgram( program );
+  
+  let vBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, 8*4, gl.STATIC_DRAW);
+  var rect = [MV.vec2(-1, 1), MV.vec2(1, 1), MV.vec2(1, -1), MV.vec2(-1, -1)];
+  gl.bufferSubData(gl.ARRAY_BUFFER, 0, MV.flatten(rect));
+
+  let vPosition = gl.getAttribLocation(program, "vPosition");
+  gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(vPosition);
+  
+  let cBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, 16*4, gl.STATIC_DRAW);
+  let rectColors = [MV.vec4(colors[1]), MV.vec4(colors[3]), MV.vec4(colors[4]), MV.vec4(colors[7])];
+  gl.bufferSubData(gl.ARRAY_BUFFER, 0, MV.flatten(rectColors));
+
+  let vColor = gl.getAttribLocation( program, "vColor");
+  gl.vertexAttribPointer(vColor, 4, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(vColor);
+  
+  render();
+
+  colorPickerCanvas.addEventListener("click", (event: any) => {
+    var clickedPos = MV.vec2(event.clientX - colorPickerCanvas.offsetLeft, 
+    colorPickerCanvas.height-event.clientY + colorPickerCanvas.offsetTop);
+
+    let pixel = new Uint8Array(4);
+    gl.readPixels(clickedPos[0], clickedPos[1], 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+    StateManager.getInstance().setState('picked-color', [pixel[0]/255, pixel[1]/255, pixel[2]/255, pixel[3]/255]);
+  });
+
+  function render() {
+    
+    gl.clear( gl.COLOR_BUFFER_BIT );
+    gl.drawArrays( gl.TRIANGLE_FAN, 0, 4 );
+
+    // requestAnimationFrame(render);
+  }
+}
+
 function init() {
+  var canvas: any;
+  var gl: any;
+
+  var maxNumTriangles = 200;  
+  var maxNumVertices  = 3 * maxNumTriangles;
+  var index = 0;
 
   canvas = document.getElementById('macanvas');
  
@@ -67,12 +119,15 @@ function init() {
       console.log('Canvas clicked!!');
 
       gl.bindBuffer( gl.ARRAY_BUFFER, vBuffer);
-      var t = MV.vec2(2*event.clientX/canvas.width-1, 
-           2*(canvas.height-event.clientY)/canvas.height-1);
+
+      console.log('Canvas position', canvas.offsetLeft);
+
+      var t = MV.vec2((2*((event.clientX - canvas.offsetLeft)/canvas.width) - 1), 
+           2*((canvas.height-event.clientY + canvas.offsetTop)/canvas.height)-1);
       gl.bufferSubData(gl.ARRAY_BUFFER, 8*index, MV.flatten(t));
 
       gl.bindBuffer( gl.ARRAY_BUFFER, cBuffer);
-      t = MV.vec4(colors[index%7]);
+      t = MV.vec4(...StateManager.getInstance().getState('picked-color'));
       gl.bufferSubData(gl.ARRAY_BUFFER, 16*index, MV.flatten(t));
       index++;
   } );
@@ -80,6 +135,13 @@ function init() {
 
   render();
 
+  function render() {
+    
+    gl.clear( gl.COLOR_BUFFER_BIT );
+    gl.drawArrays( gl.TRIANGLE_STRIP, 0, index );
+
+    requestAnimationFrame(render);
+  }
 
   // StateManager.getInstance().setState('hi', 5);
   // StateManager.getInstance().subscribe('hi', () => {
@@ -98,19 +160,10 @@ function init() {
 
 }
 
-function render() {
-  
-  gl.clear( gl.COLOR_BUFFER_BIT );
-  gl.drawArrays( gl.TRIANGLE_STRIP, 0, index );
-  
-  console.log('rerendering');
-
-  requestAnimationFrame(render);
-}
-
 export default function App() {
 
-  useEffect(init)
+  useEffect(initColorPicker);
+  useEffect(init);
 
   return (
     <div className="App">
@@ -126,6 +179,7 @@ export default function App() {
           </Grid>
           
           <Grid item xs={12} sm={6} md={2}>
+            <canvas id={'color-picker'}/>
             <h1>Hello CodeSandbox</h1>
           </Grid>
         
