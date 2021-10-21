@@ -9,10 +9,6 @@ import DriveFileRenameOutlineIcon from '@mui/icons-material/DriveFileRenameOutli
 
 export default function ToolBox() {
     return (
-        // <Box
-        //     px={2}
-        //     sx={{ width: '100%', height: 500, backgroundColor: '#abcacc'}}
-        // >
             <Card>
                 <CardHeader title={'Tool Box'} titleTypographyProps={{variant:'body2', align: 'center', color: 'common.white' }} style={{backgroundColor: '#323638'}} />
                 <CardContent style={{backgroundColor: '#3b4245'}}>

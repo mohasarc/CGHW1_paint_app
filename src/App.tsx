@@ -107,7 +107,7 @@ export default function App() {
     <div className="App">
       <Container>
         <Grid container rowSpacing={1} columns={{ xs: 12, sm: 12, md: 12 }} >
-          <Grid item xs={12} sm={12} md={12} style={{backgroundColor:'#dacbfa'}}>
+          <Grid item xs={12} sm={12} md={12}>
             <ToolBar></ToolBar>
           </Grid>
           <Grid item xs={12} sm={12} md={12}>
@@ -116,8 +116,7 @@ export default function App() {
                 <ToolBox />
               </Grid>
 
-              <Grid item xs={12} sm={6} md={6} style={{backgroundColor:'#abcabc'}}>
-                <canvas id={'macanvas'} width={'550'} height={'550'} />
+              <Grid item xs={12} sm={6} md={6} >
                 <WorkArea />
               </Grid>
 
