@@ -1,27 +1,14 @@
-import * as React from 'react';
-import Box from '@mui/material/Box';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemButton from '@mui/material/ListItemButton';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import ListItemText from '@mui/material/ListItemText';
-import Divider from '@mui/material/Divider';
-import { FixedSizeList, ListChildComponentProps } from 'react-window';
-import InboxIcon from '@mui/icons-material/Inbox';
-import VisibilityIcon from '@mui/icons-material/Visibility';
+import { Grid, Card, CardContent, CardHeader, ListItemText, ListItemIcon, ListItemButton, ListItem, List, Box } from '@mui/material'
 import ClearIcon from '@mui/icons-material/Clear';
-import { Grid, Card, CardContent } from '@mui/material'
-// import DraftsIcon from '@mui/icons-material/Drafts';
-
-let count = 0;
+import VisibilityIcon from '@mui/icons-material/Visibility';
 
 export default function Layers(){
-
     return (
         <Card>
+            <CardHeader title={'Layers'} titleTypographyProps={{variant:'body2', align: 'center', color: 'common.white' }} style={{backgroundColor: '#323638'}} />
             <CardContent style={{backgroundColor: '#3b4245'}}>
                 <Box
-                    sx={{ width: '100%', height: 200, maxWidth: 350 }}
+                    sx={{ width: '100%', height: 142, maxWidth: 350 }}
                     >
                     <List
                         sx={{
@@ -30,7 +17,7 @@ export default function Layers(){
                           bgcolor: 'background.dark',
                           position: 'relative',
                           overflow: 'auto',
-                          maxHeight: 300,
+                          maxHeight: 138,
                           '& ul': { padding: 0 },
                         }}
                             style={{backgroundColor: '#3b4245'}}
