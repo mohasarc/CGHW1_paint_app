@@ -33,7 +33,7 @@ export default function ColorPicker() {
                 <CardHeader title={'Color Picker'} titleTypographyProps={{variant:'h5', align: 'left', color: 'common.white' }} style={{backgroundColor: '#323638'}} />
                 <CardContent style={{backgroundColor: '#3b4245'}}>
                     <canvas id={'saturation-canvas'} />
-                    <canvas id={'hue-canvas'} style={{height: 25, width: 325, paddingBottom: 20}}/>
+                    <canvas id={'hue-canvas'} style={{height: 25, width: 300, paddingBottom: 20}}/>
                     <Grid container rowSpacing={1} columns={{ xs: 12, sm: 12, md: 12 }} columnSpacing={{ xs: 1, sm: 2, md: 3 }}>
                         {
                             preferredColors.map((prefColor) => {
