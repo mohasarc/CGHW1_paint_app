@@ -107,24 +107,24 @@ export default function App() {
     <div className="App">
       <Container>
         <Grid container rowSpacing={1} columns={{ xs: 12, sm: 12, md: 12 }} >
-          <Grid item xs={12} sm={12} md={12}>
+          <Grid item xs={12} sm={12} md={12} style={{backgroundColor:'#dacbfa'}}>
             <ToolBar></ToolBar>
           </Grid>
           <Grid item xs={12} sm={12} md={12}>
             <Grid container rowSpacing={1} columns={{ xs: 12, sm: 12, md: 12 }} columnSpacing={{ xs: 1, sm: 2, md: 3 }}>
               <Grid item xs={12} sm={6} md={2}>
-                <ToolBox></ToolBox>
+                <ToolBox />
               </Grid>
 
-              <Grid item xs={12} sm={6} style={{backgroundColor:'#abcabc', padding:'0'}} md={6}>
+              <Grid item xs={12} sm={6} md={6} style={{backgroundColor:'#abcabc'}}>
                 <canvas id={'macanvas'} width={'550'} height={'550'} />
-                <WorkArea></WorkArea>
+                <WorkArea />
               </Grid>
 
               <Grid item xs={12} sm={6} md={4}>
-                <ColorPicker/>
+                <ColorPicker />
                 <Box py={2}>
-                  <Layers/>
+                  <Layers />
                 </Box>
               </Grid>
             </Grid>

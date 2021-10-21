@@ -14,27 +14,6 @@ import { Grid } from '@mui/material'
 // import DraftsIcon from '@mui/icons-material/Drafts';
 
 let count = 0;
-function renderRow(props: ListChildComponentProps) {
-    const { index, style } = props;
-  
-    return (
-        <ListItem disablePadding>
-            <Box px={2} py={0.5}>
-                <ListItemButton sx={{width: '100%', maxWidth: 60}}>
-                    <ListItemIcon>
-                        <VisibilityIcon color={'secondary'}/>
-                    </ListItemIcon>
-                </ListItemButton>
-            </Box>
-            <ListItemText primary={"Layer"+count++} primaryTypographyProps={{variant:'body2', align: 'left', color: 'common.white' }} />
-            <Box px={2} py={0.5}>
-                <ListItemButton>
-                    <ClearIcon/>
-                </ListItemButton>
-            </Box>
-        </ListItem>
-    );
-}
 
 export default function Layers(){
 
@@ -61,7 +40,7 @@ export default function Layers(){
                             <Box px={1} py={0.5}>
                                 <ListItemButton sx={{width: '100%', maxWidth: 60}}>
                                     <ListItemIcon>
-                                        <VisibilityIcon color={'secondary'}/>
+                                        <VisibilityIcon sx={{color:'white'}}/>
                                     </ListItemIcon>
                                 </ListItemButton>
                             </Box>
@@ -72,7 +51,7 @@ export default function Layers(){
                           <Grid item xs={3} sm={3} md={3}>
                             <Box px={1} py={0.5}>
                                 <ListItemButton>
-                                    <ClearIcon/>
+                                    <ClearIcon sx={{color:'white'}}/>
                                 </ListItemButton>
                             </Box>
                           </Grid>

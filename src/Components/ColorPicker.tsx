@@ -30,7 +30,7 @@ export default function ColorPicker() {
     return (
         <div>
             <Card sx={{ width: 350 }}>
-                <CardHeader title={'Color Picker'} titleTypographyProps={{variant:'h5', align: 'left', color: 'common.white' }} style={{backgroundColor: '#323638'}} />
+                <CardHeader title={'Color Picker'} titleTypographyProps={{variant:'body2', align: 'center', color: 'common.white' }} style={{backgroundColor: '#323638'}} />
                 <CardContent style={{backgroundColor: '#3b4245'}}>
                     <canvas id={'saturation-canvas'} />
                     <canvas id={'hue-canvas'} style={{height: 25, width: 300, paddingBottom: 20}}/>
