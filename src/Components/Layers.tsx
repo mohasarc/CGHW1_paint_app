@@ -33,13 +33,11 @@ export function Layers(){
             colorData:[],
         };
 
-        setLayers([...layers, {...newLayer}]);
-        StateManager.getInstance().setState('layers', [...layers, {...newLayer}]);
+        setLayers([{...newLayer}, ...layers]);
+        StateManager.getInstance().setState('layers', [{...newLayer}, ...layers]);
         
-        if (selectedLayer === '') {
-            setSelectedLayer(newLayer.id);
-            StateManager.getInstance().setState('selectedLayer', newLayer.id);
-        }
+        setSelectedLayer(newLayer.id);
+        StateManager.getInstance().setState('selectedLayer', newLayer.id);
     }
     
     function toggleVisibility(layerId: string) {
@@ -119,15 +117,19 @@ export function Layers(){
                     <List
                         sx={{
                           width: '100%',
-                        //   maxWidth: 350,
+                          height: '100%',
                           bgcolor: 'background.dark',
                           position: 'relative',
                           overflow: 'auto',
-                          maxHeight: 138,
                           '& ul': { padding: 0 },
                         }}
                             style={{backgroundColor: '#3b4245'}}
                       >
+                        <ListItem >
+                            <ListItemButton style={{width: '100%'}} onClick={addLayer}>
+                                <AddIcon style={{width: '100%'}} sx={{color:'white'}}/>
+                            </ListItemButton>
+                        </ListItem>
                         {layers.map((item: Layer) => (
                             <ListItem style={{backgroundColor:item.id===selectedLayer?'#1e2224':''}}>
                                 <Grid container rowSpacing={1} columns={{ xs: 12, sm: 12, md: 12 }} >
@@ -165,11 +167,6 @@ export function Layers(){
                                 </Grid>
                             </ListItem>
                         ))}
-                            <ListItem >
-                                <ListItemButton style={{width: '100%'}} onClick={addLayer}>
-                                    <AddIcon style={{width: '100%'}} sx={{color:'white'}}/>
-                                </ListItemButton>
-                            </ListItem>
                     </List>
                 </Box>
             </CardContent>
