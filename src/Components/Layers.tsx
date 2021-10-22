@@ -13,9 +13,10 @@ export interface Layer {
     z_index: number,
     visible: boolean,
     id: string,
+    vertexLocations: number[],
 }
 
-let count = 0;
+let count = 1;
 
 export function Layers(){
     const [layers, setLayers] = useState(StateManager.getInstance().getState('layers'));
@@ -24,9 +25,10 @@ export function Layers(){
     function addLayer() {
         const newLayer = {
             name: `New Layer (${count+1})`,
-            z_index: -layers.length,
+            z_index: layers.length,
             visible: true,
-            id: `${count++}`
+            id: `${count++}`,
+            vertexLocations: [],
         };
 
         setLayers([...layers, {...newLayer}]);
@@ -59,8 +61,14 @@ export function Layers(){
     
     function removeLayer(layerId: string) {
         const newLayers = layers.filter((layer: Layer) => layer.id !== layerId);
+        const selectedLayerId = StateManager.getInstance().getState('selectedLayer');
         setLayers(newLayers);
         StateManager.getInstance().setState('layers', [...newLayers]);
+
+        if (selectedLayerId === layerId) {
+            setSelectedLayer(newLayers[0]?newLayers[0].id:'');
+            StateManager.getInstance().setState('selectedLayer', newLayers[0]?newLayers[0].id:'');
+        }
     }
 
     function moveLayerUp(layerId: string) {

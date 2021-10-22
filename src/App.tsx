@@ -43,11 +43,12 @@ function init() {
   //
   let program = INIT.initShaders(gl, squaremShaders.vertexShader, squaremShaders.fragmentShader);
   gl.useProgram(program);
+  gl.enable(gl.DEPTH_TEST);
 
   let vertexBuffer = gl.createBuffer(); // TODO can be in global state
 
   if (vertexBuffer)
-    addAttribute(gl, program, 'vPosition', vertexBuffer, maxNumVertices, 2, gl.FLOAT);
+    addAttribute(gl, program, 'vPosition', vertexBuffer, maxNumVertices, 3, gl.FLOAT);
 
   let colorBuffer = gl.createBuffer(); // TODO can be in global state
   if (colorBuffer)
@@ -71,16 +72,21 @@ function init() {
   canvas.addEventListener("mousemove", function (event: any) {
 
     if (redraw) {
-      let newVertex = MV.vec2((2 * ((event.clientX - canvas.offsetLeft) / canvas.width) - 1),
-        2 * ((canvas.height - event.clientY + canvas.offsetTop) / canvas.height) - 1);
+      const currentLayer = getCurrentLayer();
+      if (!currentLayer)
+        return;
+
+      let newVertex = MV.vec3((2 * ((event.clientX - canvas.offsetLeft) / canvas.width) - 1),
+        2 * ((canvas.height - event.clientY + canvas.offsetTop) / canvas.height) - 1, currentLayer.z_index/10000);
       let newColor = MV.vec4(...StateManager.getInstance().getState('picked-color'));
 
       gl.bindBuffer(gl.ARRAY_BUFFER, StateManager.getInstance().getState('lines').vertexBuffer);
-      gl.bufferSubData(gl.ARRAY_BUFFER, 2 * 4 * index, MV.flatten(newVertex));
+      gl.bufferSubData(gl.ARRAY_BUFFER, 3 * 4 * index, MV.flatten(newVertex));
 
       gl.bindBuffer(gl.ARRAY_BUFFER, StateManager.getInstance().getState('lines').colorBuffer);
       gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 4 * index, MV.flatten(newColor));
 
+      currentLayer.vertexLocations.push(3*4*index);
       index++;
     }
   });
@@ -88,6 +94,7 @@ function init() {
   (function render() {
 
     gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.clear(gl.DEPTH_BUFFER_BIT);
     
     /************ Draw Lines **************/
     gl.useProgram(StateManager.getInstance().getState('lines').program);
@@ -97,11 +104,22 @@ function init() {
   })();
 }
 
+function getCurrentLayer() {
+  const currentLayerId = StateManager.getInstance().getState('selectedLayer');
+  return StateManager.getInstance().getState('layers').find((layer: Layer) => layer.id === currentLayerId);
+}
+
 export default function App() {
   // Initial value
   StateManager.getInstance().setState('picked-color', [0, 0, 0, 0]);
-  StateManager.getInstance().setState('layers', []);
-  StateManager.getInstance().setState('selectedLayer', '');
+  StateManager.getInstance().setState('layers', [{
+      name: `New Layer (${1})`,
+      z_index: 0,
+      visible: true,
+      id: `${0}`,
+      vertexLocations: [],
+  }]);
+  StateManager.getInstance().setState('selectedLayer', '0');
 
   useEffect(init);
 
