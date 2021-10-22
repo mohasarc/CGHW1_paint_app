@@ -10,7 +10,7 @@ import { squaremShaders } from './shaders';
 import { StateManager } from "./util/StateManager";
 import { addAttribute } from "./util/webglHelpers";
 import ColorPicker from './Components/ColorPicker';
-import Layers from "./Components/Layers";
+import { Layers, Layer } from "./Components/Layers";
 import ToolBox from "./Components/ToolBox";
 import ToolBar from "./Components/ToolBar";
 import WorkArea from "./Components/WorkArea";
@@ -100,6 +100,8 @@ function init() {
 export default function App() {
   // Initial value
   StateManager.getInstance().setState('picked-color', [0, 0, 0, 0]);
+  StateManager.getInstance().setState('layers', []);
+  StateManager.getInstance().setState('selectedLayer', '');
 
   useEffect(init);
 
