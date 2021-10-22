@@ -76,29 +76,43 @@ function init() {
       if (!currentLayer)
         return;
 
-      let newVertex = MV.vec3((2 * ((event.clientX - canvas.offsetLeft) / canvas.width) - 1),
-        2 * ((canvas.height - event.clientY + canvas.offsetTop) / canvas.height) - 1, currentLayer.z_index/10000);
+      let newVertex = MV.vec2((2 * ((event.clientX - canvas.offsetLeft) / canvas.width) - 1),
+        2 * ((canvas.height - event.clientY + canvas.offsetTop) / canvas.height) - 1);
       let newColor = MV.vec4(...StateManager.getInstance().getState('picked-color'));
+      
+      currentLayer.vertexData.unshift(...newVertex);
+      currentLayer.colorData.unshift(...newColor);
 
-      gl.bindBuffer(gl.ARRAY_BUFFER, StateManager.getInstance().getState('lines').vertexBuffer);
-      gl.bufferSubData(gl.ARRAY_BUFFER, 3 * 4 * index, MV.flatten(newVertex));
-
-      gl.bindBuffer(gl.ARRAY_BUFFER, StateManager.getInstance().getState('lines').colorBuffer);
-      gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 4 * index, MV.flatten(newColor));
-
-      currentLayer.vertexLocations.push(3*4*index);
       index++;
     }
   });
 
   (function render() {
-
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.clear(gl.DEPTH_BUFFER_BIT);
     
+    const layers = StateManager.getInstance().getState('layers');
+    let i = 0;
+    layers.forEach((layer: Layer, layerIndex: number) => {
+      if(!layer.visible)
+        return;
+
+      const vertices = layer.vertexData;
+      const colors = layer.colorData;
+      for (let j = 0, k = 0; j < vertices.length; j+=2, k+= 4) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, StateManager.getInstance().getState('lines').vertexBuffer);
+        gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 3 * i, MV.flatten([vertices.slice(j, j+2), layerIndex/1000]));
+        
+        gl.bindBuffer(gl.ARRAY_BUFFER, StateManager.getInstance().getState('lines').colorBuffer);
+        gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 4 * i, MV.flatten(colors.slice(k, k+5)));
+        
+        i++;
+      }
+    });
+  
     /************ Draw Lines **************/
     gl.useProgram(StateManager.getInstance().getState('lines').program);
-    gl.drawArrays(gl.POINTS, 0, index);
+    gl.drawArrays(gl.POINTS, 0, i);
 
     requestAnimationFrame(render);
   })();
@@ -117,7 +131,8 @@ export default function App() {
       z_index: 0,
       visible: true,
       id: `${0}`,
-      vertexLocations: [],
+      vertexData: [],
+      colorData: [],
   }]);
   StateManager.getInstance().setState('selectedLayer', '0');
 

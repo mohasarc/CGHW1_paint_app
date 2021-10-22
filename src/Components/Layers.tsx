@@ -13,7 +13,8 @@ export interface Layer {
     z_index: number,
     visible: boolean,
     id: string,
-    vertexLocations: number[],
+    vertexData: number[],
+    colorData: number[],
 }
 
 let count = 1;
@@ -28,7 +29,8 @@ export function Layers(){
             z_index: layers.length,
             visible: true,
             id: `${count++}`,
-            vertexLocations: [],
+            vertexData:[],
+            colorData:[],
         };
 
         setLayers([...layers, {...newLayer}]);
@@ -74,13 +76,15 @@ export function Layers(){
     function moveLayerUp(layerId: string) {
         const newLayers = [...layers];
 
+        let movingLayerIndex: number = -1;
         for (let i = 0; i < layers.length; i++) {
-            if (layers[i+1] && layers[i+1].id === layerId) {
-                newLayers[i] = layers[i+1];
-                newLayers[i+1] = layers[i];
-                newLayers[i].z_index = layers[i].z_index;
-                newLayers[i+1].z_index = layers[i+1].z_index;
-            }
+            if (layers[i].id === layerId)
+                movingLayerIndex = i;
+        }
+
+        if (movingLayerIndex > 0 && movingLayerIndex < layers.length) {
+            newLayers[movingLayerIndex] = layers[movingLayerIndex-1];
+            newLayers[movingLayerIndex-1] = layers[movingLayerIndex];
         }
 
         setLayers(newLayers);
@@ -90,13 +94,15 @@ export function Layers(){
     function moveLayerDown(layerId: string) {
         const newLayers = [...layers];
 
+        let movingLayerIndex: number = -1;
         for (let i = 0; i < layers.length; i++) {
-            if (layers[i] && layers[i+1] && layers[i].id === layerId) {
-                newLayers[i+1] = layers[i];
-                newLayers[i] = layers[i+1];
-                newLayers[i+1].z_index = layers[i+1].z_index;
-                newLayers[i].z_index = layers[i].z_index;
-            }
+            if (layers[i].id === layerId)
+                movingLayerIndex = i;
+        }
+
+        if (movingLayerIndex >= 0 && movingLayerIndex < layers.length - 1) {
+            newLayers[movingLayerIndex] = layers[movingLayerIndex+1];
+            newLayers[movingLayerIndex+1] = layers[movingLayerIndex];
         }
 
         setLayers(newLayers);
