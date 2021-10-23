@@ -28,7 +28,9 @@ export default function App() {
       <Container>
         <Grid container rowSpacing={1} columns={{ xs: 12, sm: 12, md: 12 }} >
           <Grid item xs={12} sm={12} md={12}>
-            <ToolBar></ToolBar>
+            <Box mt={1} mb={2}>
+              <ToolBar></ToolBar>
+            </Box>
           </Grid>
           <Grid item xs={12} sm={12} md={12}>
             <Grid container rowSpacing={1} columns={{ xs: 12, sm: 12, md: 12 }} columnSpacing={{ xs: 1, sm: 2, md: 3 }}>
