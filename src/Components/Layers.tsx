@@ -40,6 +40,7 @@ export function Layers(){
             id: `${count++}`,
             vertexData:[],
             colorData:[],
+            brushSizeData: [],
         };
 
         StateManager.getInstance().setState('layers', [{...newLayer}, ...layers]);
