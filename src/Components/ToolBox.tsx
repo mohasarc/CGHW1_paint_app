@@ -1,14 +1,13 @@
-import { Grid, Card, CardHeader, CardContent, Button, styled, ButtonProps, Box, Divider } from '@mui/material';
-import VisibilityIcon from '@mui/icons-material/Visibility';
+import { useState } from 'react';
+import { Grid, Card, CardHeader, CardContent, Button, Box, Divider, Slider } from '@mui/material';
 import BrushOutlinedIcon from '@mui/icons-material/BrushOutlined';
 import CheckBoxOutlineBlankOutlinedIcon from '@mui/icons-material/CheckBoxOutlineBlankOutlined';
 import CircleOutlinedIcon from '@mui/icons-material/CircleOutlined';
 import ChangeHistoryOutlinedIcon from '@mui/icons-material/ChangeHistoryOutlined';
 import SelectAllOutlinedIcon from '@mui/icons-material/SelectAllOutlined';
 import DriveFileRenameOutlineIcon from '@mui/icons-material/DriveFileRenameOutline';
-import { Slider } from '@mui/material';
+
 import { convertToHex } from '../util/webglHelpers';
-import { useState } from 'react';
 import { StateManager } from '../util/StateManager';
 
 export default function ToolBox() {

@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
+import { Grid, Card, CardHeader, CardContent, Button } from '@mui/material';
 import * as MV from '../Common/MV';
 import * as INIT from '../Common/initShaders';
 import * as UTILS from '../Common/webgl-utils';
-import { Grid, Card, CardHeader, CardContent, Button, styled, ButtonProps } from '@mui/material';
 
-import { fragmentShader, vertexShader } from '../shaders';
+import { colorPickerShaders } from '../shaders';
 import { StateManager } from "../util/StateManager";
 import { addAttribute, convertToRGB } from '../util/webglHelpers';
 
@@ -89,7 +89,7 @@ function initHueCanvas() {
     gl.viewport(0, 0, hueCanvas.width, hueCanvas.height);
     gl.clearColor(254/255, 254/255, 204/255, 1.0);
 
-    let program = INIT.initShaders(gl, vertexShader, fragmentShader);
+    let program = INIT.initShaders(gl, colorPickerShaders.vertexShader, colorPickerShaders.fragmentShader);
     gl.useProgram(program);
 
     let vertexBuffer = gl.createBuffer();
@@ -166,7 +166,7 @@ function initSaturationCanvas() {
     gl.viewport(0, 0, saturationCanvas.width, saturationCanvas.height);
     gl.clearColor(59/255, 66/255, 69/255, 1.0);
 
-    let program = INIT.initShaders(gl, vertexShader, fragmentShader);
+    let program = INIT.initShaders(gl, colorPickerShaders.vertexShader, colorPickerShaders.fragmentShader);
     gl.useProgram(program);
 
     let vertexBuffer = gl.createBuffer();

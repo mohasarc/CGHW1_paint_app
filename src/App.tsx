@@ -1,11 +1,11 @@
 import "./styles.css";
 import { Container, Grid, Box } from "@mui/material";
 import { StateManager } from "./util/StateManager";
-import ColorPicker from './Components/ColorPicker';
 import { Layers } from "./Components/Layers";
+import ColorPicker from './Components/ColorPicker';
 import ToolBox from "./Components/ToolBox";
 import ToolBar from "./Components/ToolBar";
-import WorkArea from "./Components/WorkArea";
+import PaintArea from "./Components/PaintArea";
 
 
 export default function App() {
@@ -39,7 +39,7 @@ export default function App() {
               </Grid>
 
               <Grid item xs={12} sm={6} md={6} >
-                <WorkArea />
+                <PaintArea />
               </Grid>
 
               <Grid item xs={12} sm={6} md={4}>

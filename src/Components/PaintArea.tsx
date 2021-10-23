@@ -4,12 +4,12 @@ import * as MV from '../Common/MV';
 import * as INIT from '../Common/initShaders';
 import * as UTILS from '../Common/webgl-utils';
 
-import { squaremShaders } from '../shaders';
+import { brushShaders } from '../shaders';
 import { StateManager } from "../util/StateManager";
 import { addAttribute } from "../util/webglHelpers";
-import { Layer } from "../Components/Layers";
+import { Layer } from "./Layers";
 
-export default function WorkArea() {
+export default function PaintArea() {
     useEffect(init);
   
     return (
@@ -48,7 +48,7 @@ function init() {
   //
   //  Load shaders and initialize attribute buffers
   //
-  const program = INIT.initShaders(gl, squaremShaders.vertexShader, squaremShaders.fragmentShader);
+  const program = INIT.initShaders(gl, brushShaders.vertexShader, brushShaders.fragmentShader);
   gl.useProgram(program);
   gl.enable(gl.DEPTH_TEST);
 
