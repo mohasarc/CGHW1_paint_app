@@ -25,7 +25,7 @@ function init() {
   let canvas: any;
   let gl: WebGLRenderingContext;
 
-  let maxNumVertices = 10000;
+  let maxNumVertices = 100000;
   let index = 0;
   let redraw = false;
   let newLine = true;
@@ -53,10 +53,13 @@ function init() {
   gl.enable(gl.DEPTH_TEST);
 
   const vertexBuffer = gl.createBuffer(); // TODO can be in global state
-
   if (vertexBuffer)
     addAttribute(gl, program, 'vPosition', vertexBuffer, maxNumVertices, 3, gl.FLOAT);
 
+  const brushSizeBuffer = gl.createBuffer(); // TODO can be in global state
+  if (brushSizeBuffer)
+    addAttribute(gl, program, 'vBrushSize', brushSizeBuffer, maxNumVertices, 1, gl.FLOAT);
+    
   const colorBuffer = gl.createBuffer(); // TODO can be in global state
   if (colorBuffer)
     addAttribute(gl, program, 'vColor', colorBuffer, maxNumVertices, 4, gl.FLOAT);
@@ -79,7 +82,8 @@ function init() {
 
       let newVertex = MV.vec2((2 * ((event.clientX - canvas.offsetLeft) / canvas.width) - 1),
         2 * ((canvas.height - event.clientY + canvas.offsetTop) / canvas.height) - 1);
-      let newColor = MV.vec4(...StateManager.getInstance().getState('picked-color'));
+      const newColor = MV.vec4(...StateManager.getInstance().getState('picked-color'));
+      const brushSize = StateManager.getInstance().getState('brush-size');
       let allPoints: number[][] = [newVertex];
       
       if (!newLine) {
@@ -92,6 +96,7 @@ function init() {
         allPoints.forEach((point) => {
             currentLayer.vertexData.unshift(...point);
             currentLayer.colorData.unshift(...newColor);
+            currentLayer.brushSizeData.unshift(brushSize);
         })
 
       index++;
@@ -137,10 +142,14 @@ function init() {
           return;
   
         const vertices = layer.vertexData;
+        const brushSizes = layer.brushSizeData;
         const colors = layer.colorData;
-        for (let j = 0, k = 0; j < vertices.length; j+=2, k+= 4) {
+        for (let j = 0, k = 0, l = 0; j < vertices.length; j+=2, k+= 4, l+= 1) {
           gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
           gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 3 * i, MV.flatten([vertices.slice(j, j+2), layerIndex/1000]));
+
+          gl.bindBuffer(gl.ARRAY_BUFFER, brushSizeBuffer);
+          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * i, MV.flatten([brushSizes[l]]));
           
           gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
           gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 4 * i, MV.flatten(colors.slice(k, k+5)));
@@ -158,7 +167,7 @@ function init() {
   })();
 }
 
-function getCurrentLayer() {
+function getCurrentLayer(): Layer {
   const currentLayerId = StateManager.getInstance().getState('selectedLayer');
   return StateManager.getInstance().getState('layers').find((layer: Layer) => layer.id === currentLayerId);
 }

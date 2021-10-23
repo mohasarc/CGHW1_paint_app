@@ -15,6 +15,7 @@ export interface Layer {
     id: string,
     vertexData: number[],
     colorData: number[],
+    brushSizeData: number[],
 }
 
 let count = 1;

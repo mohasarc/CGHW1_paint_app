@@ -27,6 +27,7 @@ export const squaremShaders = {
     vertexShader: `
         attribute vec4 vPosition;
         attribute vec4 vColor;
+        attribute float vBrushSize;
         
         varying vec4 fColor;
         
@@ -35,7 +36,7 @@ export const squaremShaders = {
         {
             gl_Position = vPosition;
             fColor = vColor;
-            gl_PointSize = 20.0;
+            gl_PointSize = vBrushSize;
         }
     `,
     fragmentShader: `

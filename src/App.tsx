@@ -11,6 +11,7 @@ import WorkArea from "./Components/WorkArea";
 export default function App() {
   // Initial value
   StateManager.getInstance().setState('picked-color', [0, 0, 0, 0]);
+  StateManager.getInstance().setState('brush-size', 20);
   StateManager.getInstance().setState('layers', [{
       name: `New Layer (${1})`,
       z_index: 0,
@@ -18,6 +19,7 @@ export default function App() {
       id: `${0}`,
       vertexData: [],
       colorData: [],
+      brushSizeData: [],
   }]);
   StateManager.getInstance().setState('selectedLayer', '0');
 
