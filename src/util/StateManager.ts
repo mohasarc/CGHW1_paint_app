@@ -18,6 +18,9 @@ export class StateManager {
     }
 
     getState(id: string) {
+        if (!this.state[id])
+            return null;
+
         return this.state[id].val;
     }
 
@@ -25,15 +28,33 @@ export class StateManager {
         if (!this.state[id])
             this.state[id] = {val: undefined, cbs: []}
     
-        console.log('Old state: ', this.state);
         this.state[id] = {
             ...this.state[id],
             val
         }
-        console.log('New state: ', this.state);
         
         this.state[id].cbs.forEach((cb) => {
             cb();
+        });
+    }
+    
+    serialize() {
+        const filtered = {...this.state};
+        Object.keys(filtered).forEach((key) => {
+            filtered[key].cbs = [];
+        });
+
+        return JSON.stringify(filtered);
+    }
+    
+    initWith(data: string) {
+        const parsedData = JSON.parse(JSON.parse(data));
+        Object.keys(this.state).forEach((key) => {
+            if (parsedData[key] !== undefined) {
+                this.setState(key, parsedData[key].val)
+            } else {
+                console.warn('COULDNT FIND DATA');
+            }
         });
     }
 
