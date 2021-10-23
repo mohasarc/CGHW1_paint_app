@@ -1,11 +1,11 @@
-import { Grid, Card, CardHeader, CardContent, Button, styled, ButtonProps, Box, Divider } from '@mui/material';
-import BrushOutlinedIcon from '@mui/icons-material/BrushOutlined';
-import SelectAllOutlinedIcon from '@mui/icons-material/SelectAllOutlined';
-import DriveFileRenameOutlineIcon from '@mui/icons-material/DriveFileRenameOutline';
+import { Card, CardContent, Button } from '@mui/material';
 import UndoOutlinedIcon from '@mui/icons-material/UndoOutlined';
 import RedoOutlinedIcon from '@mui/icons-material/RedoOutlined';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import UploadFileOutlinedIcon from '@mui/icons-material/UploadFileOutlined';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import FileUploadIcon from '@mui/icons-material/FileUpload';
+import { StateManager } from '../util/StateManager'
 
 export default function ToolBar() {
     return(
@@ -17,13 +17,43 @@ export default function ToolBar() {
                 <Button>
                     <RedoOutlinedIcon sx={{color:'white'}} />
                 </Button>
-                <Button>
+                <Button onClick={downloadObjectAsJson}>
                     <SaveOutlinedIcon sx={{color:'white'}}/>
                 </Button>
-                <Button>
-                    <UploadFileOutlinedIcon sx={{color:'white'}}/>
+                <Button component="label">
+                <FileUploadIcon sx={{color:'white'}}/>
+                <input
+                    type="file"
+                    hidden
+                    onChange={changeHandler}
+                />
                 </Button>
             </CardContent>
         </Card>
     );
 }
+
+// Src = https://stackoverflow.com/questions/19721439/download-json-object-as-a-file-from-browser
+function downloadObjectAsJson() {
+    const data = StateManager.getInstance().serialize();
+    const exportName = 'Drawing';
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
+    const downloadAnchorNode = document.createElement('a');
+
+    downloadAnchorNode.setAttribute("href",     dataStr);
+    downloadAnchorNode.setAttribute("download", exportName + ".meg");
+    document.body.appendChild(downloadAnchorNode); // required for firefox
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+}
+
+function changeHandler(event: any) {
+    const fileReader = new FileReader();
+
+    fileReader.onload = () => {
+        if (fileReader.result && typeof fileReader.result === 'string')
+            StateManager.getInstance().initWith(fileReader.result);
+    }
+
+    fileReader.readAsText(event.target.files[0]);
+};

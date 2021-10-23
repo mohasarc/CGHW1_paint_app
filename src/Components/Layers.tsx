@@ -23,6 +23,14 @@ export function Layers(){
     const [layers, setLayers] = useState(StateManager.getInstance().getState('layers'));
     const [selectedLayer, setSelectedLayer] = useState(StateManager.getInstance().getState('selectedLayer'));
 
+    StateManager.getInstance().subscribe('layers', () => {
+        setLayers(StateManager.getInstance().getState('layers'));
+    });
+
+    StateManager.getInstance().subscribe('selectedLayer', () => {
+        setSelectedLayer(StateManager.getInstance().getState('selectedLayer'))
+    })
+
     function addLayer() {
         const newLayer = {
             name: `New Layer (${count+1})`,
@@ -33,10 +41,7 @@ export function Layers(){
             colorData:[],
         };
 
-        setLayers([{...newLayer}, ...layers]);
         StateManager.getInstance().setState('layers', [{...newLayer}, ...layers]);
-        
-        setSelectedLayer(newLayer.id);
         StateManager.getInstance().setState('selectedLayer', newLayer.id);
     }
     
@@ -50,23 +55,19 @@ export function Layers(){
                 return layer;
         });
 
-        setLayers(newLayers);
         StateManager.getInstance().setState('layers', [...newLayers]);
     }
     
     function selectLayer(layerId: string) {
-        setSelectedLayer(layerId);
         StateManager.getInstance().setState('selectedLayer', layerId);
     }
     
     function removeLayer(layerId: string) {
         const newLayers = layers.filter((layer: Layer) => layer.id !== layerId);
         const selectedLayerId = StateManager.getInstance().getState('selectedLayer');
-        setLayers(newLayers);
         StateManager.getInstance().setState('layers', [...newLayers]);
 
         if (selectedLayerId === layerId) {
-            setSelectedLayer(newLayers[0]?newLayers[0].id:'');
             StateManager.getInstance().setState('selectedLayer', newLayers[0]?newLayers[0].id:'');
         }
     }
@@ -85,7 +86,6 @@ export function Layers(){
             newLayers[movingLayerIndex-1] = layers[movingLayerIndex];
         }
 
-        setLayers(newLayers);
         StateManager.getInstance().setState('layers', [...newLayers]);
     }
 
@@ -103,7 +103,6 @@ export function Layers(){
             newLayers[movingLayerIndex+1] = layers[movingLayerIndex];
         }
 
-        setLayers(newLayers);
         StateManager.getInstance().setState('layers', [...newLayers]);
     }
 
