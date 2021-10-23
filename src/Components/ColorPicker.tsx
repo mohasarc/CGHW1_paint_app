@@ -1,10 +1,10 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
+import { Grid, Card, CardHeader, CardContent, Button } from '@mui/material';
 import * as MV from '../Common/MV';
 import * as INIT from '../Common/initShaders';
 import * as UTILS from '../Common/webgl-utils';
-import { Grid, Card, CardHeader, CardContent, Button, styled, ButtonProps } from '@mui/material';
 
-import { fragmentShader, vertexShader } from '../shaders';
+import { colorPickerShaders } from '../shaders';
 import { StateManager } from "../util/StateManager";
 import { addAttribute, convertToRGB } from '../util/webglHelpers';
 
@@ -19,6 +19,16 @@ const colors = [
     MV.vec4(1.0, 1.0, 1.0, 1.0)   // white
 ];
 
+function PickerCircle() {
+    const [pickerPos, setPickerPos] = useState({x: -100, y: -100});
+    StateManager.getInstance().subscribe('color-picker-pos', () => {
+        setPickerPos(StateManager.getInstance().getState('color-picker-pos'));
+    });
+    return <svg id={'selector-circle'} height="10" width="10" style={{position: 'absolute', top: pickerPos.y - 5, left: pickerPos.x - 5}}>
+        <circle cx="5" cy="5" r="4" stroke="black" stroke-width="1" fill-opacity={0} />
+    </svg>;
+}
+
 export default function ColorPicker() {
     StateManager.getInstance().setState('hue-picked', [0, 1, 1, 1]);
     StateManager.getInstance().setState('hue-pos', 0.5);
@@ -26,13 +36,15 @@ export default function ColorPicker() {
     useEffect(initSaturationCanvas);
     useEffect(initHueCanvas);
     const preferredColors = ['#41b96c', '#06c1d9', '#fed37a', '#e45b06', '#06486c', '#534430', '#eb4956', '#b838ed'];
-    
+
+
     return (
         <div>
             <Card>
                 <CardHeader title={'Color Picker'} titleTypographyProps={{variant:'body2', align: 'center', color: 'common.white' }} style={{backgroundColor: '#323638'}} />
                 <CardContent style={{backgroundColor: '#3b4245'}}>
                     <canvas id={'saturation-canvas'} />
+                    <PickerCircle />
                     <canvas id={'hue-canvas'} style={{height: 25, width: 300, paddingBottom: 20}}/>
                     <Grid container rowSpacing={1} columns={{ xs: 12, sm: 12, md: 12 }} columnSpacing={{ xs: 1, sm: 2, md: 3 }}>
                         {
@@ -68,7 +80,8 @@ function handlePreferredColorsButtonEvent(event: any) {
 function initHueCanvas() {
     /******************* INIT WEBGL RENDERING CONTEXT ******************/
     const hueCanvas: any = document.getElementById('hue-canvas');
-    if (!hueCanvas) throw new Error('Couldn\'t find the canvas');
+    const saturationCanvas: any = document.getElementById('saturation-canvas');
+    if (!hueCanvas || !saturationCanvas) throw new Error('Couldn\'t find the canvas');
 
     let gl: WebGLRenderingContext = UTILS.WebGLUtils.setupWebGL(hueCanvas, { preserveDrawingBuffer: true });
     if (!gl) throw new Error("WebGL isn't available");
@@ -76,7 +89,7 @@ function initHueCanvas() {
     gl.viewport(0, 0, hueCanvas.width, hueCanvas.height);
     gl.clearColor(254/255, 254/255, 204/255, 1.0);
 
-    let program = INIT.initShaders(gl, vertexShader, fragmentShader);
+    let program = INIT.initShaders(gl, colorPickerShaders.vertexShader, colorPickerShaders.fragmentShader);
     gl.useProgram(program);
 
     let vertexBuffer = gl.createBuffer();
@@ -129,6 +142,8 @@ function initHueCanvas() {
         gl.readPixels(clickedPos[0], clickedPos[1], 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
         StateManager.getInstance().setState('hue-picked', [pixel[0] / 255, pixel[1] / 255, pixel[2] / 255, pixel[3] / 255]);
         StateManager.getInstance().setState('hue-pos', clickedPos[0]/hueCanvas.width);
+        StateManager.getInstance().setState('picked-color', [pixel[0] / 255, pixel[1] / 255, pixel[2] / 255, pixel[3] / 255]);
+        StateManager.getInstance().setState('color-picker-pos', {x: pointerX, y: saturationCanvas.offsetTop+saturationCanvas.height})
         console.log('Hue-picked: ', StateManager.getInstance().getState('hue-picked'));
     }
 
@@ -142,7 +157,8 @@ function initHueCanvas() {
 function initSaturationCanvas() {
     /******************* INIT WEBGL RENDERING CONTEXT ******************/
     const saturationCanvas: any = document.getElementById('saturation-canvas');
-    if (!saturationCanvas) throw new Error('Couldn\'t find the canvas');
+    const selectorCircle: any = document.getElementById('selector-circle');
+    if (!saturationCanvas || !selectorCircle) throw new Error('Couldn\'t find the canvas');
 
     let gl: WebGLRenderingContext = UTILS.WebGLUtils.setupWebGL(saturationCanvas, { preserveDrawingBuffer: true });
     if (!gl) throw new Error("WebGL isn't available");
@@ -150,7 +166,7 @@ function initSaturationCanvas() {
     gl.viewport(0, 0, saturationCanvas.width, saturationCanvas.height);
     gl.clearColor(59/255, 66/255, 69/255, 1.0);
 
-    let program = INIT.initShaders(gl, vertexShader, fragmentShader);
+    let program = INIT.initShaders(gl, colorPickerShaders.vertexShader, colorPickerShaders.fragmentShader);
     gl.useProgram(program);
 
     let vertexBuffer = gl.createBuffer();
@@ -162,14 +178,30 @@ function initSaturationCanvas() {
         addAttribute(gl, program, 'vColor', colorBuffer, 3, 4, gl.FLOAT);
 
     /*************************** INIT EVENTS ***************************/
-    saturationCanvas.addEventListener("click", (event: any) => {
+    let pick = false;
+    saturationCanvas.addEventListener('mousedown', () => {pick = true});
+    saturationCanvas.addEventListener('mouseup', () => {pick = false});
+    saturationCanvas.addEventListener('mousemove', (event: any) => {
+        if (pick) {pickTheColor(event)}
+    });
+    saturationCanvas.addEventListener('click', pickTheColor);
+    
+    selectorCircle.addEventListener('mousedown', () => {pick = true});
+    selectorCircle.addEventListener('mouseup', () => {pick = false});
+    selectorCircle.addEventListener('click', pickTheColor )
+    selectorCircle.addEventListener('mousemove', (event: any) => {
+        if (pick) {pickTheColor(event)}
+    });
+    
+    function pickTheColor(event: any) {
         var clickedPos = MV.vec2(event.clientX - saturationCanvas.offsetLeft,
             saturationCanvas.height - event.clientY + saturationCanvas.offsetTop);
 
         let pixel = new Uint8Array(4);
         gl.readPixels(clickedPos[0], clickedPos[1], 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
         StateManager.getInstance().setState('picked-color', [pixel[0] / 255, pixel[1] / 255, pixel[2] / 255, pixel[3] / 255]);
-    });
+        StateManager.getInstance().setState('color-picker-pos', {x: event.clientX, y: event.clientY})
+    }
     
     /***************************** RENDER ******************************/
     function render() {

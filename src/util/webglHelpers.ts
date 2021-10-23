@@ -36,3 +36,17 @@ export function convertToRGB (hexColor: string){
     ];
     return aRgb;
 }
+
+/**
+ * src https://stackoverflow.com/questions/5623838/rgb-to-hex-and-hex-to-rgb
+ * @param r 
+ * @param g 
+ * @param b 
+ * @returns 
+ */
+export function convertToHex (color: number[]){
+    return ('#' + color.map(x => {
+        const hex = x.toString(16)
+        return hex.length === 1 ? '0' + hex : hex
+    }).join(''));
+}

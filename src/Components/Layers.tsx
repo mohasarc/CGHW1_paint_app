@@ -1,12 +1,25 @@
-import { Grid, Card, CardContent, CardHeader, ListItemText, ListItemIcon, ListItemButton, ListItem, List, Box, IconButton, ButtonGroup } from '@mui/material'
+import {
+    Grid,
+    Card,
+    CardContent,
+    CardHeader,
+    ListItemText,
+    ListItemButton,
+    ListItem,
+    List,
+    Box,
+    IconButton,
+    ButtonGroup
+} from '@mui/material'
 import ClearIcon from '@mui/icons-material/Clear';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import AddIcon from '@mui/icons-material/Add';
-import { StateManager } from '../util/StateManager';
-import { useState } from 'react';
 import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import { useState } from 'react';
+
+import { StateManager } from '../util/StateManager';
 
 export interface Layer {
     name: string,
@@ -15,6 +28,7 @@ export interface Layer {
     id: string,
     vertexData: number[],
     colorData: number[],
+    brushSizeData: number[],
 }
 
 let count = 1;
@@ -39,6 +53,7 @@ export function Layers(){
             id: `${count++}`,
             vertexData:[],
             colorData:[],
+            brushSizeData: [],
         };
 
         StateManager.getInstance().setState('layers', [{...newLayer}, ...layers]);

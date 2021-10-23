@@ -2,9 +2,8 @@ import { Card, CardContent, Button } from '@mui/material';
 import UndoOutlinedIcon from '@mui/icons-material/UndoOutlined';
 import RedoOutlinedIcon from '@mui/icons-material/RedoOutlined';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
-import UploadFileOutlinedIcon from '@mui/icons-material/UploadFileOutlined';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
+
 import { StateManager } from '../util/StateManager'
 
 export default function ToolBar() {

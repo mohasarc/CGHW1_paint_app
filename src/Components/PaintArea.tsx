@@ -4,12 +4,12 @@ import * as MV from '../Common/MV';
 import * as INIT from '../Common/initShaders';
 import * as UTILS from '../Common/webgl-utils';
 
-import { squaremShaders } from '../shaders';
+import { brushShaders } from '../shaders';
 import { StateManager } from "../util/StateManager";
 import { addAttribute } from "../util/webglHelpers";
-import { Layer } from "../Components/Layers";
+import { Layer } from "./Layers";
 
-export default function WorkArea() {
+export default function PaintArea() {
     useEffect(init);
   
     return (
@@ -25,9 +25,10 @@ function init() {
   let canvas: any;
   let gl: WebGLRenderingContext;
 
-  let maxNumVertices = 10000;
+  let maxNumVertices = 100000;
   let index = 0;
   let redraw = false;
+  let newLine = true;
 
   canvas = document.getElementById('macanvas');
 
@@ -47,21 +48,25 @@ function init() {
   //
   //  Load shaders and initialize attribute buffers
   //
-  const program = INIT.initShaders(gl, squaremShaders.vertexShader, squaremShaders.fragmentShader);
+  const program = INIT.initShaders(gl, brushShaders.vertexShader, brushShaders.fragmentShader);
   gl.useProgram(program);
   gl.enable(gl.DEPTH_TEST);
 
   const vertexBuffer = gl.createBuffer(); // TODO can be in global state
-
   if (vertexBuffer)
     addAttribute(gl, program, 'vPosition', vertexBuffer, maxNumVertices, 3, gl.FLOAT);
 
+  const brushSizeBuffer = gl.createBuffer(); // TODO can be in global state
+  if (brushSizeBuffer)
+    addAttribute(gl, program, 'vBrushSize', brushSizeBuffer, maxNumVertices, 1, gl.FLOAT);
+    
   const colorBuffer = gl.createBuffer(); // TODO can be in global state
   if (colorBuffer)
     addAttribute(gl, program, 'vColor', colorBuffer, maxNumVertices, 4, gl.FLOAT);
 
   canvas.addEventListener("mousedown", function (event: any) {
     redraw = true;
+    newLine = true;
   });
 
   canvas.addEventListener("mouseup", function (event: any) {
@@ -77,12 +82,50 @@ function init() {
 
       let newVertex = MV.vec2((2 * ((event.clientX - canvas.offsetLeft) / canvas.width) - 1),
         2 * ((canvas.height - event.clientY + canvas.offsetTop) / canvas.height) - 1);
-      let newColor = MV.vec4(...StateManager.getInstance().getState('picked-color'));
+      const newColor = MV.vec4(...StateManager.getInstance().getState('picked-color'));
+      const brushSize = StateManager.getInstance().getState('brush-size');
+      let allPoints: number[][] = [newVertex];
       
-      currentLayer.vertexData.unshift(...newVertex);
-      currentLayer.colorData.unshift(...newColor);
+      if (!newLine) {
+          let lastVertex = MV.vec2(currentLayer.vertexData[0], currentLayer.vertexData[1]);
+          addMidPoint(newVertex, lastVertex, allPoints);
+        } else {
+            newLine = false;
+        }
+      
+        allPoints.forEach((point) => {
+            currentLayer.vertexData.unshift(...point);
+            currentLayer.colorData.unshift(...newColor);
+            currentLayer.brushSizeData.unshift(brushSize);
+        })
 
       index++;
+    }
+
+    function addMidPoint(a: number[], b: number[], allPoints: number[][]) {
+        const MAX_ALLOWD_DISTANCE_BTWN_PTS = 0.01;
+        const distance = findLinearDistance(a, b);
+        console.log('Found distance: ', distance)
+        console.log('MAX ALLOWD DISTANCE: ', MAX_ALLOWD_DISTANCE_BTWN_PTS)
+        console.log('distance > MAX_ALLOWD_DISTANCE_BTWN_PTS evaluats to: ', distance > MAX_ALLOWD_DISTANCE_BTWN_PTS)
+        if (distance > MAX_ALLOWD_DISTANCE_BTWN_PTS) {
+            console.log('Will find mid point' )
+            const c = findMidPoint(a, b);
+            console.log('adding midPoint at: ', c);
+            allPoints.unshift(c);
+            addMidPoint(a, c, allPoints);
+            addMidPoint(c, b, allPoints);
+        }
+    }
+
+    function findMidPoint(a: number[], b: number[]) {
+        return MV.vec2((a[0] + b[0])/2, (a[1] + b[1])/2);
+    }
+
+    function findLinearDistance(a: number[], b: number[]) {
+        const dx = Math.abs(a[0] - b[0]);
+        const dy = Math.abs(a[1] - b[1]);
+        return Math.sqrt(dx*dx+dy*dy);
     }
   });
 
@@ -93,17 +136,20 @@ function init() {
     const layers = StateManager.getInstance().getState('layers');
     let i = 0;
     
-    console.log('layers: ', layers);
     if (layers) {
       layers.forEach((layer: Layer, layerIndex: number) => {
         if(!layer.visible)
           return;
   
         const vertices = layer.vertexData;
+        const brushSizes = layer.brushSizeData;
         const colors = layer.colorData;
-        for (let j = 0, k = 0; j < vertices.length; j+=2, k+= 4) {
+        for (let j = 0, k = 0, l = 0; j < vertices.length; j+=2, k+= 4, l+= 1) {
           gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
           gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 3 * i, MV.flatten([vertices.slice(j, j+2), layerIndex/1000]));
+
+          gl.bindBuffer(gl.ARRAY_BUFFER, brushSizeBuffer);
+          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * i, MV.flatten([brushSizes[l]]));
           
           gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
           gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 4 * i, MV.flatten(colors.slice(k, k+5)));
@@ -121,7 +167,7 @@ function init() {
   })();
 }
 
-function getCurrentLayer() {
+function getCurrentLayer(): Layer {
   const currentLayerId = StateManager.getInstance().getState('selectedLayer');
   return StateManager.getInstance().getState('layers').find((layer: Layer) => layer.id === currentLayerId);
 }
