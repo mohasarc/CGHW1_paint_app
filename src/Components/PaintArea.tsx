@@ -9,52 +9,47 @@ import { StateManager } from "../util/StateManager";
 import { addAttribute } from "../util/webglHelpers";
 import { Layer } from "./Layers";
 
+const newRectSize = {w: 0, h: 0};
 function SelectionRect() {
-    const [selectionRectPos, setSelectionRectPos] = useState({x: 500, y: 500});
-    const [selectionRectSize, setSelectionRectSize] = useState({w: 10, h: 10});
+    const [selectionRectWidth, setSelectionRectWidth] = useState(0);
+    const [selectionRectHeight, setSelectionRectHeight] = useState(0);
+    const [selectionRectX, setSelectionRectX] = useState(0);
+    const [selectionRectY, setSelectionRectY] = useState(0);
+
     StateManager.getInstance().subscribe('selection-rect-pos', () => {
-        const newRectSize = StateManager.getInstance().getState('selection-rect-size');
-        const newRectPos = StateManager.getInstance().getState('selection-rect-pos');
-        if (newRectSize) {
-          if (newRectSize.w < 0 && newRectSize.h < 0) {
-            setSelectionRectPos({x: newRectPos.x + newRectSize.w, y: newRectPos.y + newRectSize.h});
-            newRectSize.w = Math.abs(newRectSize.w);
-            newRectSize.h = Math.abs(newRectSize.h);
-          } else if (newRectSize.w < 0) {
-            setSelectionRectPos({x: newRectPos.x + newRectSize.w, y: newRectPos.y});
-            newRectSize.w = Math.abs(newRectSize.w);
-          } else if (newRectSize.h < 0) {
-            setSelectionRectPos({x: newRectPos.x, y: newRectPos.y + newRectSize.h});
-            newRectSize.h = Math.abs(newRectSize.h);
-          } else {
-            setSelectionRectPos(newRectPos);
-          }
-        } else {
-          setSelectionRectPos(newRectPos);
-        }
+      handlePropChange();
     });
 
     StateManager.getInstance().subscribe('selection-rect-size', () => {
-      const newRectSize = {...StateManager.getInstance().getState('selection-rect-size')};
+      handlePropChange();
+    });
+    
+    function handlePropChange() {
+      const newRectSize = StateManager.getInstance().getState('selection-rect-size');
       const newRectPos = StateManager.getInstance().getState('selection-rect-pos');
-
-      if (newRectSize.w < 0 && newRectSize.h < 0) {
-        setSelectionRectPos({x: newRectPos.x + newRectSize.w, y: newRectPos.y + newRectSize.h});
-        newRectSize.w = Math.abs(newRectSize.w);
-        newRectSize.h = Math.abs(newRectSize.h);
-      } else if (newRectSize.w < 0) {
-        setSelectionRectPos({x: newRectPos.x + newRectSize.w, y: newRectPos.y});
-        newRectSize.w = Math.abs(newRectSize.w);
-      } else if (newRectSize.h < 0) {
-        setSelectionRectPos({x: newRectPos.x, y: newRectPos.y + newRectSize.h});
-        newRectSize.h = Math.abs(newRectSize.h);
+      
+      if (newRectSize && newRectSize.w < 0 && newRectSize.h < 0) {
+        setSelectionRectX(newRectPos.x + newRectSize.w);
+        setSelectionRectY(newRectPos.y + newRectSize.h);
+      } else if (newRectSize && newRectSize.w < 0) {
+        setSelectionRectX(newRectPos.x + newRectSize.w);
+        setSelectionRectY(newRectPos.y);
+      } else if (newRectSize && newRectSize.h < 0) {
+        setSelectionRectX(newRectPos.x);
+        setSelectionRectY(newRectPos.y + newRectSize.h);
+      } else {
+        setSelectionRectX(newRectPos.x);
+        setSelectionRectY(newRectPos.y);
       }
 
-      setSelectionRectSize(newRectSize);
-    });
+      if (newRectSize) {
+        setSelectionRectHeight(Math.abs(newRectSize.h));
+        setSelectionRectWidth(Math.abs(newRectSize.w));
+      }
+    }
 
-    return <svg id={'selection-rect'} height={selectionRectSize.h} width={selectionRectSize.w} style={{position: 'absolute', top: selectionRectPos.y, left: selectionRectPos.x}}>
-        <rect x="1" y="1" height={selectionRectSize.h-2} width={selectionRectSize.w-2} style={{stroke: '#000000', strokeWidth: '1', strokeDasharray: '2 2', fill: 'none'}}/>
+    return <svg id={'selection-rect'} height={selectionRectHeight} width={selectionRectWidth} style={{position: 'absolute', top: selectionRectY, left: selectionRectX}}>
+        <rect x="1" y="1" height={selectionRectHeight-2} width={selectionRectWidth-2} style={{stroke: '#000000', strokeWidth: '1', strokeDasharray: '2 2', fill: 'none'}}/>
     </svg>;
 }
 
@@ -386,22 +381,6 @@ function init() {
         const bindingRects = layer.boundingRectData;
         const selectedRegion = layer.selectedVertices;
 
-        for (let j = 0, k = 0, l = 0; j < vertices.length; j+=2, k+= 4, l+= 1) {
-          gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 3 * i, MV.flatten([vertices.slice(j, j+2), layerIndex/1000]));
-
-          gl.bindBuffer(gl.ARRAY_BUFFER, brushSizeBuffer);
-          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * i, MV.flatten([brushSizes[l]]));
-          
-          gl.bindBuffer(gl.ARRAY_BUFFER, bindingRectBuffer);
-          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 4 * i, MV.flatten(bindingRects.slice(k, k+4)));
-          
-          gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 4 * i, MV.flatten(colors.slice(k, k+4)));
-          
-          i++;
-        }
-
         for (let j = 0, k = 0, l = 0; j < selectedRegion.vertexData.length; j+=2, k+=4, l+=1) {
           // console.log('drawing a selected vertex!!');
           gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
@@ -418,6 +397,23 @@ function init() {
           
           i++;
         }
+
+        for (let j = 0, k = 0, l = 0; j < vertices.length; j+=2, k+= 4, l+= 1) {
+          gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 3 * i, MV.flatten([vertices.slice(j, j+2), layerIndex/1000]));
+
+          gl.bindBuffer(gl.ARRAY_BUFFER, brushSizeBuffer);
+          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * i, MV.flatten([brushSizes[l]]));
+          
+          gl.bindBuffer(gl.ARRAY_BUFFER, bindingRectBuffer);
+          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 4 * i, MV.flatten(bindingRects.slice(k, k+4)));
+          
+          gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 4 * i, MV.flatten(colors.slice(k, k+4)));
+          
+          i++;
+        }
+
       });
     }
   
