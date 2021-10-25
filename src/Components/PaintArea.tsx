@@ -11,10 +11,10 @@ import { Layer } from "./Layers";
 
 const newRectSize = {w: 0, h: 0};
 function SelectionRect() {
-    const [selectionRectWidth, setSelectionRectWidth] = useState(10);
-    const [selectionRectHeight, setSelectionRectHeight] = useState(10);
-    const [selectionRectX, setSelectionRectX] = useState(500);
-    const [selectionRectY, setSelectionRectY] = useState(500);
+    const [selectionRectWidth, setSelectionRectWidth] = useState(0);
+    const [selectionRectHeight, setSelectionRectHeight] = useState(0);
+    const [selectionRectX, setSelectionRectX] = useState(0);
+    const [selectionRectY, setSelectionRectY] = useState(0);
 
     StateManager.getInstance().subscribe('selection-rect-pos', () => {
       handlePropChange();
