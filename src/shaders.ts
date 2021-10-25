@@ -29,14 +29,17 @@ export const brushShaders = {
         attribute vec4 vPosition;
         attribute vec4 vColor;
         attribute float vBrushSize;
+        attribute vec4 vBindingRect; // xywh
         
         varying vec4 fColor;
+        varying vec4 fBindingRect;
         
         void
         main()
         {
             gl_Position = vPosition;
             fColor = vColor;
+            fBindingRect = vBindingRect;
             gl_PointSize = vBrushSize;
         }
     `,
@@ -45,6 +48,7 @@ export const brushShaders = {
         precision mediump float;
 
         varying vec4 fColor;
+        varying vec4 fBindingRect;
 
         void
         main()
@@ -55,7 +59,15 @@ export const brushShaders = {
             if (r > 1.0) {
                 discard;
             }
-            gl_FragColor = fColor * (alpha);
+
+            if (
+                gl_FragCoord.x > fBindingRect.x && gl_FragCoord.x < fBindingRect.x + fBindingRect.z 
+                && gl_FragCoord.y > fBindingRect.y && gl_FragCoord.y < fBindingRect.y + fBindingRect.w
+            ) {
+                gl_FragColor = fColor * (alpha);
+            } else {
+                discard;
+            }
         }    
     `,
 }

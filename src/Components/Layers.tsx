@@ -29,6 +29,13 @@ export interface Layer {
     vertexData: number[],
     colorData: number[],
     brushSizeData: number[],
+    boundingRectData: number[], // The rectangle enclosing the pixels of a particular shape
+    selectedVertices: {
+        vertexData: number[],
+        colorData: number[],
+        brushSizeData: number[],
+        boundingRectData: number[],
+    }
 }
 
 let count = 1;
@@ -54,6 +61,13 @@ export function Layers(){
             vertexData:[],
             colorData:[],
             brushSizeData: [],
+            boundingRectData: [], // The rectangle enclosing the pixels of a particular shape
+            selectedVertices: {
+                vertexData: [],
+                colorData: [],
+                brushSizeData: [],
+                boundingRectData: [],
+            }
         };
 
         StateManager.getInstance().setState('layers', [{...newLayer}, ...layers]);

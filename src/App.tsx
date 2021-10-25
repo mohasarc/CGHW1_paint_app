@@ -12,6 +12,7 @@ export default function App() {
   // Initial value
   StateManager.getInstance().setState('picked-color', [0, 0, 0, 0]);
   StateManager.getInstance().setState('brush-size', 20);
+  StateManager.getInstance().setState('selected-tool', 'brush');
   StateManager.getInstance().setState('layers', [{
       name: `New Layer (${1})`,
       z_index: 0,
@@ -20,6 +21,13 @@ export default function App() {
       vertexData: [],
       colorData: [],
       brushSizeData: [],
+      boundingRectData: [],
+      selectedVertices: {
+        vertexData: [],
+        colorData: [],
+        brushSizeData: [],
+        boundingRectData: [],
+      }
   }]);
   StateManager.getInstance().setState('selectedLayer', '0');
 
