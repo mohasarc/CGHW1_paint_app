@@ -7,7 +7,7 @@ import * as UTILS from '../Common/webgl-utils';
 import { brushShaders } from '../shaders';
 import { StateManager } from "../util/StateManager";
 import { addAttribute } from "../util/webglHelpers";
-import { Layer } from "./Layers";
+import { Layer, Shape } from "./Layers";
 
 function SelectionRect() {
     const [selectionRectWidth, setSelectionRectWidth] = useState(0);
@@ -198,20 +198,26 @@ function init() {
       const newColor = MV.vec4(...StateManager.getInstance().getState('picked-color'));
       const brushSize = StateManager.getInstance().getState('brush-size');
       const bindingRect = [0, 0, canvas.width, canvas.height];
-      let allPoints: number[][] = [newVertex];
+      let allPointsVertexData: number[][] = [newVertex];
       
       if (!newLine) {
-          let lastVertex = MV.vec2(currentLayer.vertexData[0], currentLayer.vertexData[1]);
-          addMidPoint(newVertex, lastVertex, allPoints);
+          const prevPoint = currentLayer.shapes[0];
+          const prevPointVertexData = MV.vec2(prevPoint.vertexData[0], prevPoint.vertexData[1]);
+          addMidPoint(newVertex, prevPointVertexData, allPointsVertexData);
         } else {
           StateManager.getInstance().setState('new-line', false);
         }
       
-        allPoints.forEach((point) => {
-            currentLayer.vertexData.unshift(...point);
-            currentLayer.colorData.unshift(...newColor);
-            currentLayer.boundingRectData.unshift(...bindingRect);
-            currentLayer.brushSizeData.unshift(brushSize);
+        allPointsVertexData.forEach((point) => {
+          const newShape: Shape = {
+            vertexData: [...point],
+            colorData: [...newColor],
+            boundingRectData: [...bindingRect],
+            brushSize: brushSize,
+            type: 'point',
+          }
+
+          currentLayer.shapes.unshift(newShape);
         })
     }
     
@@ -259,6 +265,7 @@ function init() {
     const selectionRectEndCoords = StateManager.getInstance().getState('selection-end-coords');
     const selectionRectTopLeft = StateManager.getInstance().getState('selection-top-left-coords');
     const selectionRectBotRight = StateManager.getInstance().getState('selection-bottom-right-coords');
+    const croppingLayer = StateManager.getInstance().getState('cropping-layer');
     const currentLayer = getCurrentLayer();
     if (!currentLayer)
       return;
@@ -282,9 +289,10 @@ function init() {
     // find the ones that fall in the rectangle starting at 
     // selectRectStartCoord and ending at this point
 
-    const numVertex = currentLayer.vertexData.length
-    for (let j = numVertex - 2, k = numVertex*2 - 4, l = numVertex/2 - 1; j >= 0; j-=2, k-=4, l-=1 ) {
-      const point = MV.vec2(currentLayer.vertexData[j], currentLayer.vertexData[j+1]);
+    const selectedShapes: Shape[] = [];
+    currentLayer.shapes.forEach((shape) => {
+
+      const point = MV.vec2(shape.vertexData[0], shape.vertexData[1]);
       if ( // point in bounding rectangle
         point[0] > ((selectionRectTopLeft.x/canvas.width)*2)-1
         && point[0] < ((selectionRectBotRight.x/canvas.width)*2)-1
@@ -292,134 +300,126 @@ function init() {
         && point[1] < ((selectionRectTopLeft.y/canvas.height)*2)-1
       ) {
         console.log('found', point)
-        // Add these points to a temporary array of copied vertices
-        currentLayer.selectedVertices.vertexData.unshift(currentLayer.vertexData[j+1]);
-        currentLayer.selectedVertices.vertexData.unshift(currentLayer.vertexData[j]);
-        currentLayer.selectedVertices.colorData.unshift(...currentLayer.colorData.slice(k, k+4));
-        currentLayer.selectedVertices.brushSizeData.unshift(currentLayer.brushSizeData[l]);
-
+        
         const existingBoundingRect = { 
-          x1: currentLayer.boundingRectData[k], // BotLeft
-          y1: currentLayer.boundingRectData[k+1],
-          x2: currentLayer.boundingRectData[k] + currentLayer.boundingRectData[k+2], // TopRight
-          y2: currentLayer.boundingRectData[k+1] + currentLayer.boundingRectData[k+3],
+          x1: shape.boundingRectData[0], // BotLeft
+          y1: shape.boundingRectData[1],
+          x2: shape.boundingRectData[0] + shape.boundingRectData[2], // TopRight
+          y2: shape.boundingRectData[1] + shape.boundingRectData[3],
         }
-
+        
         const selectionRect = {
           x1: selectionRectTopLeft.x,
           y1: selectionRectBotRight.y,
           x2: selectionRectTopLeft.x + (selectionRectBotRight.x - selectionRectTopLeft.x),
           y2: selectionRectBotRight.y + (selectionRectTopLeft.y - selectionRectBotRight.y),
         }
-
+        
         let mostRightX1 = selectionRect.x1>existingBoundingRect.x1?selectionRect.x1:existingBoundingRect.x1;
         let mostTopY1 = selectionRect.y1>existingBoundingRect.y1?selectionRect.y1:existingBoundingRect.y1;
         let mostLeftX2 = selectionRect.x2<existingBoundingRect.x2?selectionRect.x2:existingBoundingRect.x2;
         let mostBottomY2 = selectionRect.y2<existingBoundingRect.y2?selectionRect.y2:existingBoundingRect.y2;
         
-        currentLayer.selectedVertices.boundingRectData.unshift(...[
-          mostRightX1,
-          mostTopY1,
-          Math.abs(mostLeftX2 - mostRightX1),
-          Math.abs(mostBottomY2 - mostTopY1),
-        ]);
+        selectedShapes.push({
+          vertexData: [...shape.vertexData],
+          colorData: [...shape.colorData],
+          brushSize: shape.brushSize,
+          boundingRectData: [
+            mostRightX1,
+            mostTopY1,
+            Math.abs(mostLeftX2 - mostRightX1),
+            Math.abs(mostBottomY2 - mostTopY1),
+          ],
+          type: 'point',
+        });
+
+        croppingLayer.shapes = selectedShapes;
+        StateManager.getInstance().setState('cropping-layer', croppingLayer);
       }
-    }
+    });
   }
 
   function moveCopiedRegion(delta: {x: number, y: number}) {
     // go over the vertices of the current layer
     const currentLayer = getCurrentLayer();
-    if (!currentLayer)
+    const croppingLayer = StateManager.getInstance().getState('cropping-layer');
+    if (!currentLayer || !croppingLayer)
       return;
 
-    for (let j = 0, k = 0; j < currentLayer.selectedVertices.vertexData.length; j+=2, k+=4) {
-      currentLayer.selectedVertices.vertexData[j] += delta.x/canvas.width*2;
-      currentLayer.selectedVertices.vertexData[j+1] += delta.y/canvas.height*2;
-      currentLayer.selectedVertices.boundingRectData[k] += delta.x;
-      currentLayer.selectedVertices.boundingRectData[k+1] += delta.y;
-    }
+    croppingLayer.shapes.forEach((shape: Shape) => {
+      shape.vertexData[0] += delta.x/canvas.width*2;
+      shape.vertexData[1] += delta.y/canvas.height*2;
+      shape.boundingRectData[0] += delta.x;
+      shape.boundingRectData[1] += delta.y;
+    });
     
     const selectionRectPos = StateManager.getInstance().getState('selection-rect-pos');
     StateManager.getInstance().setState('selection-rect-pos', {x: selectionRectPos.x + delta.x, y: selectionRectPos.y -delta.y})
+    StateManager.getInstance().setState('cropping-layer', croppingLayer);
   }
 
   function confirmCopy() {
     const currentLayer = getCurrentLayer();
+    const croppingLayer = StateManager.getInstance().getState('cropping-layer')
     if (!currentLayer)
       return;
 
-    currentLayer.vertexData.unshift(...currentLayer.selectedVertices.vertexData);
-    currentLayer.selectedVertices.vertexData = [];
-    
-    currentLayer.brushSizeData.unshift(...currentLayer.selectedVertices.brushSizeData);
-    currentLayer.selectedVertices.brushSizeData = [];
+    currentLayer.shapes.unshift(...croppingLayer.shapes);
+    croppingLayer.shapes = [];
 
-    currentLayer.colorData.unshift(...currentLayer.selectedVertices.colorData);
-    currentLayer.selectedVertices.colorData = [];
-
-    currentLayer.boundingRectData.unshift(...currentLayer.selectedVertices.boundingRectData);
-    currentLayer.selectedVertices.boundingRectData = [];
-
+    StateManager.getInstance().setState('cropping-layer', croppingLayer);
     StateManager.getInstance().setState('selection-rect-size', {w: 0, y: 0});
   }
 
   (function render() {
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.clear(gl.DEPTH_BUFFER_BIT);
+    gl.useProgram(program);
     
     const layers = StateManager.getInstance().getState('layers');
+    const croppingLayer = StateManager.getInstance().getState('cropping-layer');
     let i = 0;
+
+    croppingLayer.shapes.forEach((shape: Shape) => {
+      gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+      gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 3 * i, MV.flatten([shape.vertexData, 100/1000]));
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, brushSizeBuffer);
+      gl.bufferSubData(gl.ARRAY_BUFFER, 4 * i, MV.flatten([shape.brushSize]));
+      
+      gl.bindBuffer(gl.ARRAY_BUFFER, bindingRectBuffer);
+      gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 4 * i, MV.flatten(shape.boundingRectData));
+      
+      gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+      gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 4 * i, MV.flatten(shape.colorData));
+      
+      i++;
+    });
     
     if (layers) {
       layers.forEach((layer: Layer, layerIndex: number) => {
         if(!layer.visible)
           return;
-  
-        const vertices = layer.vertexData;
-        const brushSizes = layer.brushSizeData;
-        const colors = layer.colorData;
-        const bindingRects = layer.boundingRectData;
-        const selectedRegion = layer.selectedVertices;
 
-        for (let j = 0, k = 0, l = 0; j < selectedRegion.vertexData.length; j+=2, k+=4, l+=1) {
-          // console.log('drawing a selected vertex!!');
+        layer.shapes.forEach((shape) => {
           gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 3 * i, MV.flatten([selectedRegion.vertexData.slice(j, j+2), layerIndex/1000]));
+          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 3 * i, MV.flatten([shape.vertexData, layerIndex/1000]));
 
           gl.bindBuffer(gl.ARRAY_BUFFER, brushSizeBuffer);
-          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * i, MV.flatten([selectedRegion.brushSizeData[l]]));
+          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * i, MV.flatten([shape.brushSize]));
           
           gl.bindBuffer(gl.ARRAY_BUFFER, bindingRectBuffer);
-          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 4 * i, MV.flatten(selectedRegion.boundingRectData.slice(k, k+4)));
+          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 4 * i, MV.flatten(shape.boundingRectData));
           
           gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 4 * i, MV.flatten(selectedRegion.colorData.slice(k, k+4)));
+          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 4 * i, MV.flatten(shape.colorData));
           
           i++;
-        }
-
-        for (let j = 0, k = 0, l = 0; j < vertices.length; j+=2, k+= 4, l+= 1) {
-          gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 3 * i, MV.flatten([vertices.slice(j, j+2), layerIndex/1000]));
-
-          gl.bindBuffer(gl.ARRAY_BUFFER, brushSizeBuffer);
-          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * i, MV.flatten([brushSizes[l]]));
-          
-          gl.bindBuffer(gl.ARRAY_BUFFER, bindingRectBuffer);
-          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 4 * i, MV.flatten(bindingRects.slice(k, k+4)));
-          
-          gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 4 * i, MV.flatten(colors.slice(k, k+4)));
-          
-          i++;
-        }
-
+        });
       });
     }
   
     /************ Draw Lines **************/
-    gl.useProgram(program);
     gl.drawArrays(gl.POINTS, 0, i);
 
     requestAnimationFrame(render);
