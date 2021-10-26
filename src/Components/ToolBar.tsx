@@ -10,10 +10,10 @@ export default function ToolBar() {
     return(
         <Card>
             <CardContent style={{backgroundColor: '#3b4245'}}>
-                <Button>
+                <Button onClick={undo}>
                     <UndoOutlinedIcon sx={{color:'white'}}/>
                 </Button>
-                <Button>
+                <Button onClick={redo}>
                     <RedoOutlinedIcon sx={{color:'white'}} />
                 </Button>
                 <Button onClick={downloadObjectAsJson}>
@@ -56,3 +56,21 @@ function changeHandler(event: any) {
 
     fileReader.readAsText(event.target.files[0]);
 };
+
+function undo() {
+    const curTimelineNode = StateManager.getInstance().getState('cur-timeline-node');
+    const timeLine = StateManager.getInstance().getState('timeline');
+    if (curTimelineNode > 0) {
+        StateManager.getInstance().setState('layers', JSON.parse(JSON.stringify(timeLine[curTimelineNode - 1])));
+        StateManager.getInstance().setState('cur-timeline-node', curTimelineNode - 1);
+    }
+}
+
+function redo() {
+    const curTimelineNode = StateManager.getInstance().getState('cur-timeline-node');
+    const timeLine = StateManager.getInstance().getState('timeline');
+    if (curTimelineNode < timeLine.length - 1) {
+        StateManager.getInstance().setState('layers', JSON.parse(JSON.stringify(timeLine[curTimelineNode + 1])));
+        StateManager.getInstance().setState('cur-timeline-node', curTimelineNode + 1);
+    }
+}

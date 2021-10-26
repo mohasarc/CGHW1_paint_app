@@ -123,26 +123,49 @@ function init() {
   selectionRectElement.addEventListener("mousemove", handleMouseMove);
   
   function handleMouseUp(event: any) {
-    StateManager.getInstance().setState('redraw', false);
+    const usedTool = StateManager.getInstance().getState('selected-tool');
     const cropping = StateManager.getInstance().getState('cropping');
-    if (StateManager.getInstance().getState('selected-tool') === 'crop') {
+    const timeLine: Layer[][] = StateManager.getInstance().getState('timeline');
+    const layers: Layer[] = StateManager.getInstance().getState('layers');
+
+    StateManager.getInstance().setState('redraw', false);
+    if (usedTool === 'brush') {
+      updateTimeline();
+    } else if (usedTool === 'erase') {
+      updateTimeline();
+    } else if (usedTool === 'crop') {
       if (!cropping) {
         copySelectedRegion();
         StateManager.getInstance().setState('cropping', true);
       }
+    } else if (usedTool === 'rect') {
+
+    } else if (usedTool === 'circle') {
+
+    } else if (usedTool === 'triangle') {
+
     }
   }
 
   function handleMouseDown(event: any) {
     const usedTool = StateManager.getInstance().getState('selected-tool');
     const cropping = StateManager.getInstance().getState('cropping');
+
     StateManager.getInstance().setState('redraw', true);
     StateManager.getInstance().setState('new-line', true);
-    if (usedTool === 'crop') {
+    if (usedTool === 'brush') {
+    } else if (usedTool === 'eraser') {
+    } else if (usedTool === 'crop') {
       StateManager.getInstance().setState('selection-start-coords', {x: event.clientX - canvas.offsetLeft, y: canvas.height - (event.clientY - canvas.offsetTop)})
       if (!cropping) {
         StateManager.getInstance().setState('selection-rect-pos', {x: event.clientX, y: event.clientY});
       }
+    } else if (usedTool === 'rect') {
+
+    } else if (usedTool === 'circle') {
+
+    } else if (usedTool === 'triangle') {
+
     }
   }
 
@@ -186,6 +209,7 @@ function init() {
       }
 
     }
+
 
     function freeDraw(event: any) {
       const newLine = StateManager.getInstance().getState('new-line');
@@ -247,6 +271,20 @@ function init() {
         return Math.sqrt(dx*dx+dy*dy);
     }
   }
+    
+  function updateTimeline() {
+    const layers: Layer[] = StateManager.getInstance().getState('layers');
+    const curTimelineNode = StateManager.getInstance().getState('cur-timeline-node');
+    let timeline: Layer[][] = StateManager.getInstance().getState('timeline');
+
+    if (curTimelineNode !== timeline.length - 1) {
+      timeline = timeline.slice(0, curTimelineNode + 1);
+    }
+
+    timeline.push(JSON.parse(JSON.stringify(layers)));
+    StateManager.getInstance().setState('cur-timeline-node', timeline.length - 1);
+    StateManager.getInstance().setState('timeline', timeline);
+  }
 
   document.addEventListener('keyup', (event: any) => {
     const cropping = StateManager.getInstance().getState('cropping'); 
@@ -255,6 +293,7 @@ function init() {
       if (cropping) {
         StateManager.getInstance().setState('cropping', false);
         confirmCopy();
+        updateTimeline();
       }
     }
   });
