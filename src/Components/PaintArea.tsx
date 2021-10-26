@@ -9,7 +9,6 @@ import { StateManager } from "../util/StateManager";
 import { addAttribute } from "../util/webglHelpers";
 import { Layer } from "./Layers";
 
-const newRectSize = {w: 0, h: 0};
 function SelectionRect() {
     const [selectionRectWidth, setSelectionRectWidth] = useState(0);
     const [selectionRectHeight, setSelectionRectHeight] = useState(0);
@@ -27,6 +26,9 @@ function SelectionRect() {
     function handlePropChange() {
       const newRectSize = StateManager.getInstance().getState('selection-rect-size');
       const newRectPos = StateManager.getInstance().getState('selection-rect-pos');
+      
+      if (!newRectPos || !newRectSize)
+        return;
       
       if (newRectSize && newRectSize.w < 0 && newRectSize.h < 0) {
         setSelectionRectX(newRectPos.x + newRectSize.w);
@@ -67,31 +69,25 @@ export default function PaintArea() {
 }
 
 function init() {
-  let canvas: any;
   let gl: WebGLRenderingContext;
-
-  let maxNumVertices = 100000;
-  let index = 0;
-  let redraw = false;
-  let newLine = true;
-  let selectionRectStartCoords = {x: 0, y: 0};
-  let selectionRectEndCoords = {x: 0, y: 0};
-  const selectionRectTopLeft = {x: 0, y: 0};
-  const selectionRectBotRight = {x: 0, y: 0};
-  let selectionInProgress = false;
+  const canvas: any = document.getElementById('macanvas');
   const selectionRectElement = document.getElementById('selection-rect');
-
-  canvas = document.getElementById('macanvas');
-
   if (!canvas || !selectionRectElement)
     throw new Error('Couldn\'t create the canvas');
-
+  
   gl = UTILS.WebGLUtils.setupWebGL(canvas, null);
   if (!gl) { alert("WebGL isn't available"); }
 
-  setInterval(()=>{
-    console.log('Canvas size: ', canvas.clientWidth, canvas.clientHeight);
-  }, 500)
+  let maxNumVertices = 100000;
+  StateManager.getInstance().setState('redraw', false);
+  StateManager.getInstance().setState('newLine', true);
+  StateManager.getInstance().setState('selection-start-coords',  {x: 0, y: 0});
+  StateManager.getInstance().setState('selection-end-coords',  {x: 0, y: 0});
+  StateManager.getInstance().setState('selection-top-left-coords',  {x: 0, y: 0});
+  StateManager.getInstance().setState('selection-bottom-right-coords',  {x: 0, y: 0});
+  StateManager.getInstance().setState('cropping', false);
+  StateManager.getInstance().setState('selection-rect-pos', {x: 0, y: 0});
+  StateManager.getInstance().setState('selection-rect-size', {w: 0, h: 0});
 
   gl.viewport(0, 0, canvas.clientWidth, canvas.clientHeight);
   gl.clearColor(0.8, 0.8, 0.8, 1.0);
@@ -118,7 +114,7 @@ function init() {
   const colorBuffer = gl.createBuffer(); // TODO can be in global state
   if (colorBuffer)
     addAttribute(gl, program, 'vColor', colorBuffer, maxNumVertices, 4, gl.FLOAT);
-
+    
   canvas.addEventListener("mousedown", handleMouseDown);
   canvas.addEventListener("mouseup", handleMouseUp);
   canvas.addEventListener("mousemove", handleMouseMove);
@@ -127,37 +123,41 @@ function init() {
   selectionRectElement.addEventListener("mousemove", handleMouseMove);
   
   function handleMouseUp(event: any) {
-    redraw = false;
+    StateManager.getInstance().setState('redraw', false);
+    const cropping = StateManager.getInstance().getState('cropping');
     if (StateManager.getInstance().getState('selected-tool') === 'crop') {
-      if (!selectionInProgress) {
+      if (!cropping) {
         copySelectedRegion();
-        selectionInProgress = true;
+        StateManager.getInstance().setState('cropping', true);
       }
     }
   }
 
   function handleMouseDown(event: any) {
     const usedTool = StateManager.getInstance().getState('selected-tool');
-    redraw = true;
-    newLine = true;
-    if (usedTool === 'crop') { 
-      selectionRectStartCoords = {x: event.clientX - canvas.offsetLeft, y: canvas.height - (event.clientY - canvas.offsetTop)};
-      if (!selectionInProgress) {
+    const cropping = StateManager.getInstance().getState('cropping');
+    StateManager.getInstance().setState('redraw', true);
+    StateManager.getInstance().setState('new-line', true);
+    if (usedTool === 'crop') {
+      StateManager.getInstance().setState('selection-start-coords', {x: event.clientX - canvas.offsetLeft, y: canvas.height - (event.clientY - canvas.offsetTop)})
+      if (!cropping) {
         StateManager.getInstance().setState('selection-rect-pos', {x: event.clientX, y: event.clientY});
       }
     }
   }
 
   function handleMouseMove(event: any) {
+    const redraw = StateManager.getInstance().getState('redraw');
+    const usedTool = StateManager.getInstance().getState('selected-tool');
+    const cropping = StateManager.getInstance().getState('cropping');
     if (redraw) {
-      const usedTool = StateManager.getInstance().getState('selected-tool');
       if (usedTool === 'brush') {
         freeDraw(event);
       } else if (usedTool === 'eraser') {
 
       } else if (usedTool === 'crop') {
-        selectionRectEndCoords = {x: event.clientX - canvas.offsetLeft, y: canvas.height - (event.clientY - canvas.offsetTop)};
-        if (selectionInProgress) {
+        StateManager.getInstance().setState('selection-end-coords', {x: event.clientX - canvas.offsetLeft, y: canvas.height - (event.clientY - canvas.offsetTop)})
+        if (cropping) {
           moveCopiedRegion({x: event.movementX, y: -event.movementY});
         } else {
           const selectionRectPos1 = StateManager.getInstance().getState('selection-rect-pos');
@@ -188,6 +188,7 @@ function init() {
     }
 
     function freeDraw(event: any) {
+      const newLine = StateManager.getInstance().getState('new-line');
       const currentLayer = getCurrentLayer();
       if (!currentLayer)
         return;
@@ -203,7 +204,7 @@ function init() {
           let lastVertex = MV.vec2(currentLayer.vertexData[0], currentLayer.vertexData[1]);
           addMidPoint(newVertex, lastVertex, allPoints);
         } else {
-            newLine = false;
+          StateManager.getInstance().setState('new-line', false);
         }
       
         allPoints.forEach((point) => {
@@ -212,8 +213,6 @@ function init() {
             currentLayer.boundingRectData.unshift(...bindingRect);
             currentLayer.brushSizeData.unshift(brushSize);
         })
-
-      index++;
     }
     
     function addMidPoint(a: number[], b: number[], allPoints: number[][]) {
@@ -244,12 +243,11 @@ function init() {
   }
 
   document.addEventListener('keyup', (event: any) => {
-    var name = event.key;
-    var code = event.code;
-
+    const cropping = StateManager.getInstance().getState('cropping'); 
+    const code = event.code;
     if (code === 'Escape') {
-      if (selectionInProgress) {
-        selectionInProgress = false;
+      if (cropping) {
+        StateManager.getInstance().setState('cropping', false);
         confirmCopy();
       }
     }
@@ -257,10 +255,13 @@ function init() {
   
   function copySelectedRegion() {
     // go over the vertices of the current layer
+    const selectionRectStartCoords = StateManager.getInstance().getState('selection-start-coords');
+    const selectionRectEndCoords = StateManager.getInstance().getState('selection-end-coords');
+    const selectionRectTopLeft = StateManager.getInstance().getState('selection-top-left-coords');
+    const selectionRectBotRight = StateManager.getInstance().getState('selection-bottom-right-coords');
     const currentLayer = getCurrentLayer();
     if (!currentLayer)
       return;
-
 
     if (selectionRectStartCoords.x < selectionRectEndCoords.x) {
       selectionRectTopLeft.x = selectionRectStartCoords.x;

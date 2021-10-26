@@ -22,7 +22,9 @@ const colors = [
 function PickerCircle() {
     const [pickerPos, setPickerPos] = useState({x: -100, y: -100});
     StateManager.getInstance().subscribe('color-picker-pos', () => {
-        setPickerPos(StateManager.getInstance().getState('color-picker-pos'));
+        const newPickerPos = StateManager.getInstance().getState('color-picker-pos');
+        if (newPickerPos)
+            setPickerPos(newPickerPos);
     });
     return <svg id={'selector-circle'} height="10" width="10" style={{position: 'absolute', top: pickerPos.y - 5, left: pickerPos.x - 5}}>
         <circle cx="5" cy="5" r="4" stroke="black" stroke-width="1" fill-opacity={0} />
