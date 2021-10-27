@@ -13,21 +13,27 @@ export default function App() {
   StateManager.getInstance().setState('picked-color', [0, 0, 0, 0]);
   StateManager.getInstance().setState('brush-size', 20);
   StateManager.getInstance().setState('selected-tool', 'brush');
+  StateManager.getInstance().setState('timeline', [[{
+    name: `New Layer (${1})`,
+    z_index: 0,
+    visible: true,
+    id: `${0}`,
+    shapes: [],
+  }]]);
+  StateManager.getInstance().setState('cur-timeline-node', 0);
+  StateManager.getInstance().setState('cropping-layer', {
+    name: `CropLayer`,
+    z_index: 0,
+    visible: true,
+    id: `${0}`,
+    shapes: [],
+  });
   StateManager.getInstance().setState('layers', [{
-      name: `New Layer (${1})`,
-      z_index: 0,
-      visible: true,
-      id: `${0}`,
-      vertexData: [],
-      colorData: [],
-      brushSizeData: [],
-      boundingRectData: [],
-      selectedVertices: {
-        vertexData: [],
-        colorData: [],
-        brushSizeData: [],
-        boundingRectData: [],
-      }
+    name: `New Layer (${1})`,
+    z_index: 0,
+    visible: true,
+    id: `${0}`,
+    shapes: [],
   }]);
   StateManager.getInstance().setState('selectedLayer', '0');
 

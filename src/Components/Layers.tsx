@@ -21,21 +21,22 @@ import { useState } from 'react';
 
 import { StateManager } from '../util/StateManager';
 
+export interface Shape {
+    vertexData: number[], // Vec2
+    colorData: number[], // Vec4
+    brushSize: number[],
+    boundingRectData: number[], // Vec4
+    type: 'point' | 'triangle' | 'dotted-triangle' | 'rectangle' | 'dotted-rectangle' | 'elipse' | 'dotted-elipse',
+    center?: number[], // for elipse only
+    size?: {w: number, h: number}, // for elipse only
+}
+
 export interface Layer {
     name: string,
     z_index: number,
     visible: boolean,
     id: string,
-    vertexData: number[],
-    colorData: number[],
-    brushSizeData: number[],
-    boundingRectData: number[], // The rectangle enclosing the pixels of a particular shape
-    selectedVertices: {
-        vertexData: number[],
-        colorData: number[],
-        brushSizeData: number[],
-        boundingRectData: number[],
-    }
+    shapes: Shape[],
 }
 
 let count = 1;
@@ -58,16 +59,11 @@ export function Layers(){
             z_index: layers.length,
             visible: true,
             id: `${count++}`,
+            shapes: [],
             vertexData:[],
             colorData:[],
             brushSizeData: [],
             boundingRectData: [], // The rectangle enclosing the pixels of a particular shape
-            selectedVertices: {
-                vertexData: [],
-                colorData: [],
-                brushSizeData: [],
-                boundingRectData: [],
-            }
         };
 
         StateManager.getInstance().setState('layers', [{...newLayer}, ...layers]);
