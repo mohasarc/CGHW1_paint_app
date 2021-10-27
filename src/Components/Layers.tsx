@@ -24,9 +24,11 @@ import { StateManager } from '../util/StateManager';
 export interface Shape {
     vertexData: number[], // Vec2
     colorData: number[], // Vec4
-    brushSize: number,
+    brushSize: number[],
     boundingRectData: number[], // Vec4
-    type: 'point' | 'triangle' | 'rectangle' | 'elipse',
+    type: 'point' | 'triangle' | 'dotted-triangle' | 'rectangle' | 'dotted-rectangle' | 'elipse' | 'dotted-elipse',
+    center?: number[], // for elipse only
+    size?: {w: number, h: number}, // for elipse only
 }
 
 export interface Layer {

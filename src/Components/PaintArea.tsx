@@ -139,11 +139,11 @@ function init() {
         StateManager.getInstance().setState('cropping', true);
       }
     } else if (usedTool === 'rect') {
-
+      finalizeRectangle();
     } else if (usedTool === 'circle') {
-
+      finalizeElipse();
     } else if (usedTool === 'triangle') {
-
+      finalizeTriangle();
     }
   }
 
@@ -161,11 +161,11 @@ function init() {
         StateManager.getInstance().setState('selection-rect-pos', {x: event.clientX, y: event.clientY});
       }
     } else if (usedTool === 'rect') {
-
+      drawRectangle({x: event.clientX, y: event.clientY}, {w: 0, h: 0});
     } else if (usedTool === 'circle') {
-
+      drawElipse({x: event.clientX, y: event.clientY}, {w: 0, h: 0});
     } else if (usedTool === 'triangle') {
-
+      drawTriangle({x: event.clientX, y: event.clientY}, {w: 0, h: 0});
     }
   }
 
@@ -177,7 +177,7 @@ function init() {
       if (usedTool === 'brush') {
         freeDraw(event);
       } else if (usedTool === 'eraser') {
-
+        erase({x: event.clientX, y: event.clientY});
       } else if (usedTool === 'crop') {
         StateManager.getInstance().setState('selection-end-coords', {x: event.clientX - canvas.offsetLeft, y: canvas.height - (event.clientY - canvas.offsetTop)})
         if (cropping) {
@@ -185,93 +185,271 @@ function init() {
         } else {
           const selectionRectPos1 = StateManager.getInstance().getState('selection-rect-pos');
           const selectionRectPos2 = {x: event.clientX, y: event.clientY};
-          // const selectionRectTopLeft = {
-          //   x: selectionRectPos1.x<selectionRectPos2.x?selectionRectPos1.x:selectionRectPos2.x,
-          //   y: selectionRectPos1.y<selectionRectPos2.y?selectionRectPos1.y:selectionRectPos2.y,
-          // };
-          // const selectionRectBottomRight = {
-          //   x: selectionRectPos1.x>selectionRectPos2.x?selectionRectPos1.x:selectionRectPos2.x,
-          //   y: selectionRectPos1.y>selectionRectPos2.y?selectionRectPos1.y:selectionRectPos2.y,
-          // };
-
-          // StateManager.getInstance().setState('selection-rect-pos', selectionRectTopLeft);
           StateManager.getInstance().setState('selection-rect-size', {
             w: selectionRectPos2.x - selectionRectPos1.x,
             h: selectionRectPos2.y - selectionRectPos1.y
           });
         }
       } else if (usedTool === 'rect') {
-
+        resizeRectangle({x: event.movementX, y: -event.movementY});
       } else if (usedTool === 'circle') {
-
+        resizeElipse({x: event.movementX, y: -event.movementY});
       } else if (usedTool === 'triangle') {
-
+        resizeTriangle({x: event.movementX, y: -event.movementY});
       }
-
-    }
-
-
-    function freeDraw(event: any) {
-      const newLine = StateManager.getInstance().getState('new-line');
-      const currentLayer = getCurrentLayer();
-      if (!currentLayer)
-        return;
-
-      let newVertex = MV.vec2((2 * ((event.clientX - canvas.offsetLeft) / canvas.width) - 1),
-        2 * ((canvas.height - event.clientY + canvas.offsetTop) / canvas.height) - 1);
-      const newColor = MV.vec4(...StateManager.getInstance().getState('picked-color'));
-      const brushSize = StateManager.getInstance().getState('brush-size');
-      const bindingRect = [0, 0, canvas.width, canvas.height];
-      let allPointsVertexData: number[][] = [newVertex];
-      
-      if (!newLine) {
-          const prevPoint = currentLayer.shapes[0];
-          const prevPointVertexData = MV.vec2(prevPoint.vertexData[0], prevPoint.vertexData[1]);
-          addMidPoint(newVertex, prevPointVertexData, allPointsVertexData);
-        } else {
-          StateManager.getInstance().setState('new-line', false);
-        }
-      
-        allPointsVertexData.forEach((point) => {
-          const newShape: Shape = {
-            vertexData: [...point],
-            colorData: [...newColor],
-            boundingRectData: [...bindingRect],
-            brushSize: brushSize,
-            type: 'point',
-          }
-
-          currentLayer.shapes.unshift(newShape);
-        })
-    }
-    
-    function addMidPoint(a: number[], b: number[], allPoints: number[][]) {
-        const MAX_ALLOWD_DISTANCE_BTWN_PTS = 0.01;
-        const distance = findLinearDistance(a, b);
-        console.log('Found distance: ', distance)
-        console.log('MAX ALLOWD DISTANCE: ', MAX_ALLOWD_DISTANCE_BTWN_PTS)
-        console.log('distance > MAX_ALLOWD_DISTANCE_BTWN_PTS evaluats to: ', distance > MAX_ALLOWD_DISTANCE_BTWN_PTS)
-        if (distance > MAX_ALLOWD_DISTANCE_BTWN_PTS) {
-            console.log('Will find mid point' )
-            const c = findMidPoint(a, b);
-            console.log('adding midPoint at: ', c);
-            allPoints.unshift(c);
-            addMidPoint(a, c, allPoints);
-            addMidPoint(c, b, allPoints);
-        }
-    }
-
-    function findMidPoint(a: number[], b: number[]) {
-        return MV.vec2((a[0] + b[0])/2, (a[1] + b[1])/2);
-    }
-
-    function findLinearDistance(a: number[], b: number[]) {
-        const dx = Math.abs(a[0] - b[0]);
-        const dy = Math.abs(a[1] - b[1]);
-        return Math.sqrt(dx*dx+dy*dy);
     }
   }
     
+  function drawRectangle(pos: {x: number, y: number}, size: {w: number, h: number}) {
+    const currentLayer = getCurrentLayer();
+    const newColor = MV.vec4(...StateManager.getInstance().getState('picked-color'));
+    const brushSize = StateManager.getInstance().getState('brush-size');
+    const bindingRect = [0, 0, canvas.width, canvas.height];
+
+    const t1: number[] = MV.vec2((2 * ((pos.x - canvas.offsetLeft) / canvas.width) - 1),
+      2 * ((canvas.height - pos.y + canvas.offsetTop) / canvas.height) - 1);
+      
+    const t2: number[] = MV.vec2((2 * (((pos.x + size.w) - canvas.offsetLeft) / canvas.width) - 1),
+      2 * ((canvas.height - pos.y + canvas.offsetTop) / canvas.height) - 1);
+    
+    const t3: number[] = MV.vec2((2 * ((pos.x - canvas.offsetLeft) / canvas.width) - 1),
+      2 * ((canvas.height - (pos.y + size.h) + canvas.offsetTop) / canvas.height) - 1);
+    
+    const t4: number[] = MV.vec2((2 * (((pos.x + size.w) - canvas.offsetLeft) / canvas.width) - 1),
+      2 * ((canvas.height - (pos.y + size.h) + canvas.offsetTop) / canvas.height) - 1);
+
+    console.log('The points: ', [t1, t2, t3, t4]);
+    
+    const newShape: Shape = {
+      vertexData: [...t1, ...t2, ...t4, ...t3],
+      colorData: [...newColor, ...newColor, ...newColor, ...newColor],
+      boundingRectData: [...bindingRect, ...bindingRect, ...bindingRect, ...bindingRect],
+      brushSize: [brushSize, brushSize, brushSize, brushSize],
+      type: 'dotted-rectangle',
+    }
+
+    currentLayer.shapes.unshift(newShape);
+  } 
+  
+  function resizeRectangle(delta: {x: number, y: number}) {
+    // get the last shape (which will be a rectangle)
+    // change its size
+    const currentLayer = getCurrentLayer();
+
+    console.log('resizing rectangle:', delta);
+
+    // first vertex x,y
+    currentLayer.shapes[0].vertexData[2] += delta.x/canvas.width*2;
+    // currentLayer.shapes[0].vertexData[3] += delta.y/canvas.height;
+
+    // second vertex x,y
+    currentLayer.shapes[0].vertexData[4] += delta.x/canvas.width*2;
+    currentLayer.shapes[0].vertexData[5] += delta.y/canvas.height*2;
+
+    // third vertex x,y
+    // currentLayer.shapes[0].vertexData[6] += delta.x/canvas.width;
+    currentLayer.shapes[0].vertexData[7] += delta.y/canvas.height*2;
+  }
+
+  function finalizeRectangle() {
+    const currentLayer = getCurrentLayer();
+    currentLayer.shapes[0].type = 'rectangle';
+  }
+  
+  function drawTriangle(pos: {x: number, y: number}, size: {w: number, h: number}) {
+    const currentLayer = getCurrentLayer();
+    const newColor = MV.vec4(...StateManager.getInstance().getState('picked-color'));
+    const brushSize = StateManager.getInstance().getState('brush-size');
+    const bindingRect = [0, 0, canvas.width, canvas.height];
+
+    const t1: number[] = MV.vec2((2 * ((pos.x - canvas.offsetLeft) / canvas.width) - 1),
+      2 * ((canvas.height - pos.y + canvas.offsetTop) / canvas.height) - 1);
+      
+    const t2: number[] = MV.vec2((2 * (((pos.x + size.w/2) - canvas.offsetLeft) / canvas.width) - 1),
+      2 * ((canvas.height - (pos.y + size.h) + canvas.offsetTop) / canvas.height) - 1);
+    
+    const t3: number[] = MV.vec2((2 * (((pos.x - size.w/2) - canvas.offsetLeft) / canvas.width) - 1),
+      2 * ((canvas.height - (pos.y + size.h) + canvas.offsetTop) / canvas.height) - 1);
+
+    console.log('The points: ', [t1, t2, t3]);
+    
+    const newShape: Shape = {
+      vertexData: [...t2, ...t3, ...t1],
+      // vertexData: [0, 0, 0, 0.5, 0.5, 0.5, 0.5, 0],
+      colorData: [...newColor, ...newColor, ...newColor],
+      boundingRectData: [...bindingRect, ...bindingRect, ...bindingRect],
+      brushSize: [brushSize, brushSize, brushSize],
+      type: 'dotted-triangle',
+    }
+
+    currentLayer.shapes.unshift(newShape);
+  }
+
+  function resizeTriangle(delta: {x: number, y: number}) {
+    // get the last shape (which will be a rectangle)
+    // change its size
+    const currentLayer = getCurrentLayer();
+
+    console.log('resizing rectangle:', delta);
+
+    // first vertex x,y
+    currentLayer.shapes[0].vertexData[2] += delta.x/canvas.width*2;
+    currentLayer.shapes[0].vertexData[3] += delta.y/canvas.height*2;
+
+    // second vertex x,y
+    currentLayer.shapes[0].vertexData[4] -= delta.x/canvas.width*2;
+    currentLayer.shapes[0].vertexData[5] += delta.y/canvas.height*2;
+  }
+
+  function finalizeTriangle() {
+    const currentLayer = getCurrentLayer();
+    currentLayer.shapes[0].type = 'triangle';
+  }
+
+  function drawElipse(pos: {x: number, y: number}, size: {w: number, h: number}) {
+    const center: number[] = MV.vec2((2 * ((pos.x - canvas.offsetLeft) / canvas.width) - 1),
+      2 * ((canvas.height - pos.y + canvas.offsetTop) / canvas.height) - 1); // center
+    const currentLayer = getCurrentLayer();
+    const newColor: number[] = MV.vec4(...StateManager.getInstance().getState('picked-color'));
+    const brushSize: number = StateManager.getInstance().getState('brush-size');
+    const bindingRect: number[] = [0, 0, canvas.width, canvas.height];
+
+    const newShape: Shape = {
+      vertexData: [],
+      // vertexData: [0, 0, 0, 0.5, 0.5, 0.5, 0.5, 0],
+      colorData: [],
+      boundingRectData: [],
+      brushSize: [],
+      type: 'dotted-elipse',
+      center: [...center],
+      size: {...size},
+    }
+    // according to ellipse equation
+    const radiusX = Math.abs(size.w/canvas.width);
+    const radiusY = Math.abs(size.h/canvas.height);
+
+    for(let i = 0; i < 32; i++) {
+      const t: number[] = MV.vec2(center[0] + radiusX * Math.cos(i * Math.PI / 16), center[1] + radiusY * Math.sin(i * Math.PI/16));
+      newShape.vertexData.push(...t);
+      newShape.colorData.push(...newColor);
+      newShape.boundingRectData.push(...bindingRect);
+      newShape.brushSize.push(brushSize);
+    }
+
+    currentLayer.shapes.unshift(newShape);
+  }
+
+  function resizeElipse(delta: {x: number, y: number}) {
+    // get the last shape (which will be a rectangle)
+    // change its size
+    const currentLayer = getCurrentLayer();
+    const center = currentLayer.shapes[0].center;
+    const curSize = currentLayer.shapes[0].size;
+    if (!center || !curSize)
+      return;
+
+    const updatedVertexData: number[] = []
+    const newSize = {w: curSize.w + delta.x*2, h: curSize.h + delta.y*2};
+    // according to ellipse equation
+    const radiusX = Math.abs(newSize.w/canvas.width);
+    const radiusY = Math.abs(newSize.h/canvas.height);
+
+    for(let i = 0; i < 32; i++) {
+      const t: number[] = MV.vec2(center[0] + radiusX * Math.cos(i * Math.PI / 16), center[1] + radiusY * Math.sin(i * Math.PI/16));
+      updatedVertexData.push(...t);
+    }
+
+    currentLayer.shapes[0].vertexData = [...updatedVertexData];
+    currentLayer.shapes[0].size = {...newSize};
+  }
+
+  function finalizeElipse() {
+    const currentLayer = getCurrentLayer();
+    currentLayer.shapes[0].type = 'elipse';
+  }
+  
+  function erase(pos: {x: number, y: number}) {
+    const currentLayer = getCurrentLayer();
+    if (!currentLayer)
+      return;
+
+    const brushSize = StateManager.getInstance().getState('brush-size')/canvas.width;
+    const posClip = MV.vec2((2 * ((pos.x - canvas.offsetLeft) / canvas.width) - 1),
+    2 * ((canvas.height - pos.y + canvas.offsetTop) / canvas.height) - 1);
+
+    currentLayer.shapes = currentLayer.shapes.filter((shape) => {
+      for (let i = 0; i < shape.vertexData.length; i+=2) {
+        console.log('distance between', shape.vertexData.slice(i, i+2), posClip, 'is ', findLinearDistance(shape.vertexData.slice(i, i+2), posClip))
+        if (findLinearDistance(shape.vertexData.slice(i, i+2), posClip) <= brushSize){
+          // remove shape
+          return false;
+        }
+
+        return true;
+      }
+    });
+  }
+
+  function freeDraw(event: any) {
+    const newLine = StateManager.getInstance().getState('new-line');
+    const currentLayer = getCurrentLayer();
+    if (!currentLayer)
+      return;
+
+    let newVertex = MV.vec2((2 * ((event.clientX - canvas.offsetLeft) / canvas.width) - 1),
+      2 * ((canvas.height - event.clientY + canvas.offsetTop) / canvas.height) - 1);
+    const newColor = MV.vec4(...StateManager.getInstance().getState('picked-color'));
+    const brushSize = StateManager.getInstance().getState('brush-size');
+    const bindingRect = [0, 0, canvas.width, canvas.height];
+    let allPointsVertexData: number[][] = [newVertex];
+    
+    if (!newLine) {
+        const prevPoint = currentLayer.shapes[0];
+        const prevPointVertexData = MV.vec2(prevPoint.vertexData[0], prevPoint.vertexData[1]);
+        addMidPoint(newVertex, prevPointVertexData, allPointsVertexData);
+      } else {
+        StateManager.getInstance().setState('new-line', false);
+      }
+    
+      allPointsVertexData.forEach((point) => {
+        const newShape: Shape = {
+          vertexData: [...point],
+          colorData: [...newColor],
+          boundingRectData: [...bindingRect],
+          brushSize: [brushSize],
+          type: 'point',
+        }
+
+        currentLayer.shapes.unshift(newShape);
+      })
+  }
+  
+  function addMidPoint(a: number[], b: number[], allPoints: number[][]) {
+      const MAX_ALLOWD_DISTANCE_BTWN_PTS = 0.01;
+      const distance = findLinearDistance(a, b);
+      console.log('Found distance: ', distance)
+      console.log('MAX ALLOWD DISTANCE: ', MAX_ALLOWD_DISTANCE_BTWN_PTS)
+      console.log('distance > MAX_ALLOWD_DISTANCE_BTWN_PTS evaluats to: ', distance > MAX_ALLOWD_DISTANCE_BTWN_PTS)
+      if (distance > MAX_ALLOWD_DISTANCE_BTWN_PTS) {
+          console.log('Will find mid point' )
+          const c = findMidPoint(a, b);
+          console.log('adding midPoint at: ', c);
+          allPoints.unshift(c);
+          addMidPoint(a, c, allPoints);
+          addMidPoint(c, b, allPoints);
+      }
+  }
+
+  function findMidPoint(a: number[], b: number[]) {
+      return MV.vec2((a[0] + b[0])/2, (a[1] + b[1])/2);
+  }
+
+  function findLinearDistance(a: number[], b: number[]) {
+      const dx = Math.abs(a[0] - b[0]);
+      const dy = Math.abs(a[1] - b[1]);
+      return Math.sqrt(dx*dx+dy*dy);
+  }
+  
   function updateTimeline() {
     const layers: Layer[] = StateManager.getInstance().getState('layers');
     const curTimelineNode = StateManager.getInstance().getState('cur-timeline-node');
@@ -362,7 +540,7 @@ function init() {
         selectedShapes.push({
           vertexData: [...shape.vertexData],
           colorData: [...shape.colorData],
-          brushSize: shape.brushSize,
+          brushSize: [...shape.brushSize],
           boundingRectData: [
             mostRightX1,
             mostTopY1,
@@ -434,32 +612,82 @@ function init() {
       
       i++;
     });
-    
+
+    let lastRenderingEndIndex = 0;
     if (layers) {
       layers.forEach((layer: Layer, layerIndex: number) => {
         if(!layer.visible)
           return;
 
-        layer.shapes.forEach((shape) => {
+        layer.shapes.forEach((shape, shapeIndex) => {
           gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 3 * i, MV.flatten([shape.vertexData, layerIndex/1000]));
-
+          for (let k = 0; k < shape.vertexData.length; k+=2) {
+            gl.bufferSubData(gl.ARRAY_BUFFER, (4 * 3 * i) + ((k/2)*3*4), MV.flatten([shape.vertexData.slice(k, k+2), layerIndex/1000]));
+          }
+        
           gl.bindBuffer(gl.ARRAY_BUFFER, brushSizeBuffer);
-          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * i, MV.flatten([shape.brushSize]));
+          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * i, MV.flatten([...shape.brushSize]));
           
           gl.bindBuffer(gl.ARRAY_BUFFER, bindingRectBuffer);
           gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 4 * i, MV.flatten(shape.boundingRectData));
           
           gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
           gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 4 * i, MV.flatten(shape.colorData));
+            
+          if (shape.type === 'point') {
+            i++;
+          } else if (shape.type === 'dotted-rectangle' || shape.type === 'rectangle') {
+            i+=4;
+          } else if (shape.type === 'dotted-triangle' || shape.type === 'triangle') {
+            i+=3;
+          } else if (shape.type === 'dotted-elipse' || shape.type === 'elipse') {
+            i+=32;
+          }
           
-          i++;
+          const nextShapeType = layer.shapes[shapeIndex+1]?.type;
+          if (nextShapeType !== shape.type || shapeIndex === layer.shapes.length - 1) {
+            if (shape.type === 'point'){
+              gl.drawArrays(gl.POINTS, lastRenderingEndIndex, (i - 1 - lastRenderingEndIndex));
+            } else if (shape.type === 'dotted-rectangle'){
+              const numRectangles = (i - lastRenderingEndIndex) / 4;
+              for (let r = 0; r < numRectangles; r++) {
+                gl.drawArrays(gl.LINE_LOOP, lastRenderingEndIndex + 4 * r, 4);
+              }
+            } else if (shape.type === 'rectangle') {
+              const numRectangles = (i - lastRenderingEndIndex) / 4;
+              for (let r = 0; r < numRectangles; r++) {
+                gl.drawArrays(gl.TRIANGLE_FAN, lastRenderingEndIndex + 4 * r, 4);
+              }
+            } else if (shape.type === 'dotted-triangle') {
+              const numTriangles = (i - lastRenderingEndIndex) / 3;
+              for (let t = 0; t < numTriangles; t++) {
+                gl.drawArrays(gl.LINE_LOOP, lastRenderingEndIndex + 3 * t, 3);
+              }
+            } else if (shape.type === 'triangle') {
+              const numTriangles = (i - lastRenderingEndIndex) / 3;
+              for (let t = 0; t < numTriangles; t++) {
+                gl.drawArrays(gl.TRIANGLES, lastRenderingEndIndex + 3 * t, 3);
+              }
+            } else if (shape.type === 'dotted-elipse') {
+              const numElipses = (i - lastRenderingEndIndex) / 32;
+              for (let t = 0; t < numElipses; t++) {
+                gl.drawArrays(gl.LINE_LOOP, lastRenderingEndIndex + 32 * t, 32);
+              }
+            } else if (shape.type === 'elipse') {
+              const numElipses = (i - lastRenderingEndIndex) / 32;
+              for (let t = 0; t < numElipses; t++) {
+                gl.drawArrays(gl.TRIANGLE_FAN, lastRenderingEndIndex + 32 * t, 32);
+              }
+            }
+
+            lastRenderingEndIndex = i;
+          }
         });
       });
     }
   
     /************ Draw Lines **************/
-    gl.drawArrays(gl.POINTS, 0, i);
+    // gl.drawArrays(gl.POINTS, 0, i);
 
     requestAnimationFrame(render);
   })();
