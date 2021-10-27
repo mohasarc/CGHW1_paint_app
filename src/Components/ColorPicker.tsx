@@ -20,13 +20,13 @@ const colors = [
 ];
 
 function PickerCircle() {
-    const [pickerPos, setPickerPos] = useState({x: -100, y: -100});
+    const [pickerPos, setPickerPos] = useState({ x: -100, y: -100 });
     StateManager.getInstance().subscribe('color-picker-pos', () => {
         const newPickerPos = StateManager.getInstance().getState('color-picker-pos');
         if (newPickerPos)
             setPickerPos(newPickerPos);
     });
-    return <svg id={'selector-circle'} height="10" width="10" style={{position: 'absolute', top: pickerPos.y - 5, left: pickerPos.x - 5}}>
+    return <svg id={'selector-circle'} height="10" width="10" style={{ position: 'absolute', top: pickerPos.y - 5, left: pickerPos.x - 5 }}>
         <circle cx="5" cy="5" r="4" stroke="black" stroke-width="1" fill-opacity={0} />
     </svg>;
 }
@@ -43,11 +43,11 @@ export default function ColorPicker() {
     return (
         <div>
             <Card>
-                <CardHeader title={'Color Picker'} titleTypographyProps={{variant:'body2', align: 'center', color: 'common.white' }} style={{backgroundColor: '#323638'}} />
-                <CardContent style={{backgroundColor: '#3b4245'}}>
+                <CardHeader title={'Color Picker'} titleTypographyProps={{ variant: 'body2', align: 'center', color: 'common.white' }} style={{ backgroundColor: '#323638' }} />
+                <CardContent style={{ backgroundColor: '#3b4245' }}>
                     <canvas id={'saturation-canvas'} />
                     <PickerCircle />
-                    <canvas id={'hue-canvas'} style={{height: 25, width: 300, paddingBottom: 20}}/>
+                    <canvas id={'hue-canvas'} style={{ height: 25, width: 300, paddingBottom: 20 }} />
                     <Grid container rowSpacing={1} columns={{ xs: 12, sm: 12, md: 12 }} columnSpacing={{ xs: 1, sm: 2, md: 3 }}>
                         {
                             preferredColors.map((prefColor) => {
@@ -76,7 +76,7 @@ export default function ColorPicker() {
 
 function handlePreferredColorsButtonEvent(event: any) {
     const color = convertToRGB(event.target.id.substr(1));
-    StateManager.getInstance().setState('picked-color', [...color.map(cc => cc/255), 1]);
+    StateManager.getInstance().setState('picked-color', [...color.map(cc => cc / 255), 1]);
 }
 
 function initHueCanvas() {
@@ -89,7 +89,7 @@ function initHueCanvas() {
     if (!gl) throw new Error("WebGL isn't available");
 
     gl.viewport(0, 0, hueCanvas.width, hueCanvas.height);
-    gl.clearColor(254/255, 254/255, 204/255, 1.0);
+    gl.clearColor(254 / 255, 254 / 255, 204 / 255, 1.0);
 
     let program = INIT.initShaders(gl, colorPickerShaders.vertexShader, colorPickerShaders.fragmentShader);
     gl.useProgram(program);
@@ -101,13 +101,13 @@ function initHueCanvas() {
     let colorBuffer = gl.createBuffer();
     if (colorBuffer)
         addAttribute(gl, program, 'vColor', colorBuffer, 14, 4, gl.FLOAT);
-    
+
     const rects = [];
     const rectsColors = [];
-    for (let w = -1, i = 0; w < 1; w += 2/6, i++) {
+    for (let w = -1, i = 0; w < 1; w += 2 / 6, i++) {
         rects.push(MV.vec2(w, 1), MV.vec2(w, -1));
-        rectsColors.push(MV.vec4(colors[i%6 + 1]), MV.vec4(colors[i%6 + 1]));
-        
+        rectsColors.push(MV.vec4(colors[i % 6 + 1]), MV.vec4(colors[i % 6 + 1]));
+
     }
 
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
@@ -115,7 +115,7 @@ function initHueCanvas() {
 
     gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, MV.flatten(rectsColors));
-    
+
     /*************************** INIT EVENTS ***************************/
     let pick = false;
     hueCanvas.addEventListener('mousedown', () => {
@@ -135,7 +135,7 @@ function initHueCanvas() {
     hueCanvas.addEventListener('click', (event: any) => {
         pickColor(event.clientX, event.clientY);
     });
-    
+
     function pickColor(pointerX: number, pointerY: number) {
         var clickedPos = MV.vec2(pointerX - hueCanvas.offsetLeft,
             hueCanvas.height - pointerY + hueCanvas.offsetTop);
@@ -143,9 +143,9 @@ function initHueCanvas() {
         let pixel = new Uint8Array(4);
         gl.readPixels(clickedPos[0], clickedPos[1], 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
         StateManager.getInstance().setState('hue-picked', [pixel[0] / 255, pixel[1] / 255, pixel[2] / 255, pixel[3] / 255]);
-        StateManager.getInstance().setState('hue-pos', clickedPos[0]/hueCanvas.width);
+        StateManager.getInstance().setState('hue-pos', clickedPos[0] / hueCanvas.width);
         StateManager.getInstance().setState('picked-color', [pixel[0] / 255, pixel[1] / 255, pixel[2] / 255, pixel[3] / 255]);
-        StateManager.getInstance().setState('color-picker-pos', {x: pointerX, y: saturationCanvas.offsetTop+saturationCanvas.height})
+        StateManager.getInstance().setState('color-picker-pos', { x: pointerX, y: saturationCanvas.offsetTop + saturationCanvas.height })
         console.log('Hue-picked: ', StateManager.getInstance().getState('hue-picked'));
     }
 
@@ -166,7 +166,7 @@ function initSaturationCanvas() {
     if (!gl) throw new Error("WebGL isn't available");
 
     gl.viewport(0, 0, saturationCanvas.width, saturationCanvas.height);
-    gl.clearColor(59/255, 66/255, 69/255, 1.0);
+    gl.clearColor(59 / 255, 66 / 255, 69 / 255, 1.0);
 
     let program = INIT.initShaders(gl, colorPickerShaders.vertexShader, colorPickerShaders.fragmentShader);
     gl.useProgram(program);
@@ -181,20 +181,20 @@ function initSaturationCanvas() {
 
     /*************************** INIT EVENTS ***************************/
     let pick = false;
-    saturationCanvas.addEventListener('mousedown', () => {pick = true});
-    saturationCanvas.addEventListener('mouseup', () => {pick = false});
+    saturationCanvas.addEventListener('mousedown', () => { pick = true });
+    saturationCanvas.addEventListener('mouseup', () => { pick = false });
     saturationCanvas.addEventListener('mousemove', (event: any) => {
-        if (pick) {pickTheColor(event)}
+        if (pick) { pickTheColor(event) }
     });
     saturationCanvas.addEventListener('click', pickTheColor);
-    
-    selectorCircle.addEventListener('mousedown', () => {pick = true});
-    selectorCircle.addEventListener('mouseup', () => {pick = false});
-    selectorCircle.addEventListener('click', pickTheColor )
+
+    selectorCircle.addEventListener('mousedown', () => { pick = true });
+    selectorCircle.addEventListener('mouseup', () => { pick = false });
+    selectorCircle.addEventListener('click', pickTheColor)
     selectorCircle.addEventListener('mousemove', (event: any) => {
-        if (pick) {pickTheColor(event)}
+        if (pick) { pickTheColor(event) }
     });
-    
+
     function pickTheColor(event: any) {
         var clickedPos = MV.vec2(event.clientX - saturationCanvas.offsetLeft,
             saturationCanvas.height - event.clientY + saturationCanvas.offsetTop);
@@ -202,21 +202,21 @@ function initSaturationCanvas() {
         let pixel = new Uint8Array(4);
         gl.readPixels(clickedPos[0], clickedPos[1], 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
         StateManager.getInstance().setState('picked-color', [pixel[0] / 255, pixel[1] / 255, pixel[2] / 255, pixel[3] / 255]);
-        StateManager.getInstance().setState('color-picker-pos', {x: event.clientX, y: event.clientY})
+        StateManager.getInstance().setState('color-picker-pos', { x: event.clientX, y: event.clientY })
     }
-    
+
     /***************************** RENDER ******************************/
     function render() {
         gl.clear(gl.COLOR_BUFFER_BIT);
-        
+
         let rectColors = [MV.vec4(colors[7]), MV.vec4(colors[0]), StateManager.getInstance().getState('hue-picked')];
         gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
         gl.bufferSubData(gl.ARRAY_BUFFER, 0, MV.flatten(rectColors));
 
-        let rect = [MV.vec2(-1, 1), MV.vec2(1, 1), MV.vec2(StateManager.getInstance().getState('hue-pos')*2-1, -1)];
+        let rect = [MV.vec2(-1, 1), MV.vec2(1, 1), MV.vec2(StateManager.getInstance().getState('hue-pos') * 2 - 1, -1)];
         gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
         gl.bufferSubData(gl.ARRAY_BUFFER, 0, MV.flatten(rect));
-        
+
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 3);
     }
 

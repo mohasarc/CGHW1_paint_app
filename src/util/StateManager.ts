@@ -1,8 +1,8 @@
 
 export class StateManager {
     static instance: StateManager;
-    state: {[id: string]: {val: any, cbs: Function[]}} = {};
-    
+    state: { [id: string]: { val: any, cbs: Function[] } } = {};
+
     /**
      * 
      * @param id 
@@ -11,8 +11,8 @@ export class StateManager {
      */
     subscribe(id: string, cb: Function): boolean {
         if (!this.state[id])
-            this.state[id] = {val: undefined, cbs: []}
-    
+            this.state[id] = { val: undefined, cbs: [] }
+
         this.state[id].cbs = [...this.state[id].cbs, cb];
         return true;
     }
@@ -26,27 +26,27 @@ export class StateManager {
 
     setState(id: string, val: any) {
         if (!this.state[id])
-            this.state[id] = {val: undefined, cbs: []}
-    
+            this.state[id] = { val: undefined, cbs: [] }
+
         this.state[id] = {
             ...this.state[id],
             val
         }
-        
+
         this.state[id].cbs.forEach((cb) => {
             cb();
         });
     }
-    
+
     serialize() {
-        const filtered = {...this.state};
+        const filtered = { ...this.state };
         Object.keys(filtered).forEach((key) => {
             filtered[key].cbs = [];
         });
 
         return JSON.stringify(filtered);
     }
-    
+
     initWith(data: string) {
         const parsedData = JSON.parse(JSON.parse(data));
         Object.keys(this.state).forEach((key) => {
@@ -59,7 +59,7 @@ export class StateManager {
     }
 
     static getInstance(): StateManager {
-        if (!StateManager.instance){
+        if (!StateManager.instance) {
             StateManager.instance = new StateManager();
         }
 

@@ -7,25 +7,25 @@ import FileUploadIcon from '@mui/icons-material/FileUpload';
 import { StateManager } from '../util/StateManager'
 
 export default function ToolBar() {
-    return(
+    return (
         <Card>
-            <CardContent style={{backgroundColor: '#3b4245'}}>
+            <CardContent style={{ backgroundColor: '#3b4245' }}>
                 <Button onClick={undo}>
-                    <UndoOutlinedIcon sx={{color:'white'}}/>
+                    <UndoOutlinedIcon sx={{ color: 'white' }} />
                 </Button>
                 <Button onClick={redo}>
-                    <RedoOutlinedIcon sx={{color:'white'}} />
+                    <RedoOutlinedIcon sx={{ color: 'white' }} />
                 </Button>
                 <Button onClick={downloadObjectAsJson}>
-                    <SaveOutlinedIcon sx={{color:'white'}}/>
+                    <SaveOutlinedIcon sx={{ color: 'white' }} />
                 </Button>
                 <Button component="label">
-                <FileUploadIcon sx={{color:'white'}}/>
-                <input
-                    type="file"
-                    hidden
-                    onChange={changeHandler}
-                />
+                    <FileUploadIcon sx={{ color: 'white' }} />
+                    <input
+                        type="file"
+                        hidden
+                        onChange={changeHandler}
+                    />
                 </Button>
             </CardContent>
         </Card>
@@ -39,7 +39,7 @@ function downloadObjectAsJson() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
     const downloadAnchorNode = document.createElement('a');
 
-    downloadAnchorNode.setAttribute("href",     dataStr);
+    downloadAnchorNode.setAttribute("href", dataStr);
     downloadAnchorNode.setAttribute("download", exportName + ".meg");
     document.body.appendChild(downloadAnchorNode); // required for firefox
     downloadAnchorNode.click();

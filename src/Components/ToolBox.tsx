@@ -11,7 +11,7 @@ import { convertToHex } from '../util/webglHelpers';
 import { StateManager } from '../util/StateManager';
 
 export default function ToolBox() {
-    const [pickedColor, setPickedColor ] = useState('#000000');
+    const [pickedColor, setPickedColor] = useState('#000000');
     const [brushSize, setBrushSize] = useState(0);
     const [selectedTool, setSelectedTool] = useState('brush');
 
@@ -23,90 +23,90 @@ export default function ToolBox() {
     StateManager.getInstance().subscribe('selected-tool', () => {
         setSelectedTool(StateManager.getInstance().getState('selected-tool'));
     });
-    
+
     StateManager.getInstance().subscribe('brush-size', () => {
         setBrushSize(StateManager.getInstance().getState('brush-size'));
     });
-    
+
     function handleBrushSizeChange(newSize: number) {
         StateManager.getInstance().setState('brush-size', newSize);
     }
 
     return (
-            <Card>
-                <CardHeader title={'Tool Box'} titleTypographyProps={{variant:'body2', align: 'center', color: 'common.white' }} style={{backgroundColor: '#323638'}} />
-                <CardContent style={{backgroundColor: '#3b4245'}}>
-                    <Box pb={2}>
-                        <Grid container rowSpacing={1} columns={{ xs: 12, sm: 12, md: 12 }} >
-                            <Grid item xs={12} sm={12} md={6}>
-                                <Button 
-                                    variant={selectedTool==='brush'?'outlined':"text"}
-                                    onClick={() => {StateManager.getInstance().setState('selected-tool', 'brush')}}
-                                >
-                                    <BrushOutlinedIcon sx={{color:'white'}}/>
-                                </Button>
-                            </Grid>
-                            <Grid item xs={12} sm={12} md={6}>
-                                <Button
-                                    variant={selectedTool==='eraser'?'outlined':"text"}
-                                    onClick={() => {StateManager.getInstance().setState('selected-tool', 'eraser')}}
-                                >
-                                    <DriveFileRenameOutlineIcon sx={{color:'white'}} />
-                                </Button>
-                            </Grid>
-                            <Grid item xs={12} sm={12} md={6}>
-                                <Button
-                                    variant={selectedTool==='crop'?'outlined':"text"}
-                                    onClick={() => {StateManager.getInstance().setState('selected-tool', 'crop')}}
-                                >
-                                    <SelectAllOutlinedIcon sx={{color:'white'}}/>
-                                </Button>
-                            </Grid>
+        <Card>
+            <CardHeader title={'Tool Box'} titleTypographyProps={{ variant: 'body2', align: 'center', color: 'common.white' }} style={{ backgroundColor: '#323638' }} />
+            <CardContent style={{ backgroundColor: '#3b4245' }}>
+                <Box pb={2}>
+                    <Grid container rowSpacing={1} columns={{ xs: 12, sm: 12, md: 12 }} >
+                        <Grid item xs={12} sm={12} md={6}>
+                            <Button
+                                variant={selectedTool === 'brush' ? 'outlined' : "text"}
+                                onClick={() => { StateManager.getInstance().setState('selected-tool', 'brush') }}
+                            >
+                                <BrushOutlinedIcon sx={{ color: 'white' }} />
+                            </Button>
                         </Grid>
-                    </Box>
-                    <Divider/>
-                    <Box pt={2}>
-                        <Grid container rowSpacing={1} columns={{ xs: 12, sm: 12, md: 12 }} >
-                            <Grid item xs={12} sm={12} md={6}>
-                                <Button
-                                    variant={selectedTool==='rect'?'outlined':"text"}
-                                    onClick={() => {StateManager.getInstance().setState('selected-tool', 'rect')}}
-                                >
-                                    <CheckBoxOutlineBlankOutlinedIcon sx={{color:'white'}}/>
-                                </Button>
-                            </Grid>
-                            <Grid item xs={12} sm={12} md={6}>
-                                <Button
-                                    variant={selectedTool==='circle'?'outlined':"text"}
-                                    onClick={() => {StateManager.getInstance().setState('selected-tool', 'circle')}}
-                                >
-                                    <CircleOutlinedIcon sx={{color:'white'}}/>
-                                </Button>
-                            </Grid>
-                            <Grid item xs={12} sm={12} md={6}>
-                                <Button
-                                    variant={selectedTool==='triangle'?'outlined':"text"}
-                                    onClick={() => {StateManager.getInstance().setState('selected-tool', 'triangle')}}
-                                >
-                                    <ChangeHistoryOutlinedIcon sx={{color:'white'}}/>
-                                </Button>
-                            </Grid>
+                        <Grid item xs={12} sm={12} md={6}>
+                            <Button
+                                variant={selectedTool === 'eraser' ? 'outlined' : "text"}
+                                onClick={() => { StateManager.getInstance().setState('selected-tool', 'eraser') }}
+                            >
+                                <DriveFileRenameOutlineIcon sx={{ color: 'white' }} />
+                            </Button>
                         </Grid>
-                    </Box>
-                    <Divider/>
-                    <Slider
-                        size="small"
-                        value={brushSize}
-                        min={2}
-                        aria-label="Small"
-                        valueLabelDisplay="auto"
-                        onChange={(event: any) => { handleBrushSizeChange(event.target.value) }}
-                    />
-                    <Divider/>
-                    <Box mt={2} sx={{width: '100%', height: 40, backgroundColor: pickedColor, border: 1}}>
-                    </Box>
-                </CardContent>
-            </Card>
+                        <Grid item xs={12} sm={12} md={6}>
+                            <Button
+                                variant={selectedTool === 'crop' ? 'outlined' : "text"}
+                                onClick={() => { StateManager.getInstance().setState('selected-tool', 'crop') }}
+                            >
+                                <SelectAllOutlinedIcon sx={{ color: 'white' }} />
+                            </Button>
+                        </Grid>
+                    </Grid>
+                </Box>
+                <Divider />
+                <Box pt={2}>
+                    <Grid container rowSpacing={1} columns={{ xs: 12, sm: 12, md: 12 }} >
+                        <Grid item xs={12} sm={12} md={6}>
+                            <Button
+                                variant={selectedTool === 'rect' ? 'outlined' : "text"}
+                                onClick={() => { StateManager.getInstance().setState('selected-tool', 'rect') }}
+                            >
+                                <CheckBoxOutlineBlankOutlinedIcon sx={{ color: 'white' }} />
+                            </Button>
+                        </Grid>
+                        <Grid item xs={12} sm={12} md={6}>
+                            <Button
+                                variant={selectedTool === 'circle' ? 'outlined' : "text"}
+                                onClick={() => { StateManager.getInstance().setState('selected-tool', 'circle') }}
+                            >
+                                <CircleOutlinedIcon sx={{ color: 'white' }} />
+                            </Button>
+                        </Grid>
+                        <Grid item xs={12} sm={12} md={6}>
+                            <Button
+                                variant={selectedTool === 'triangle' ? 'outlined' : "text"}
+                                onClick={() => { StateManager.getInstance().setState('selected-tool', 'triangle') }}
+                            >
+                                <ChangeHistoryOutlinedIcon sx={{ color: 'white' }} />
+                            </Button>
+                        </Grid>
+                    </Grid>
+                </Box>
+                <Divider />
+                <Slider
+                    size="small"
+                    value={brushSize}
+                    min={2}
+                    aria-label="Small"
+                    valueLabelDisplay="auto"
+                    onChange={(event: any) => { handleBrushSizeChange(event.target.value) }}
+                />
+                <Divider />
+                <Box mt={2} sx={{ width: '100%', height: 40, backgroundColor: pickedColor, border: 1 }}>
+                </Box>
+            </CardContent>
+        </Card>
         // </Box>
     );
 }
