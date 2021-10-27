@@ -131,7 +131,7 @@ function init() {
     StateManager.getInstance().setState('redraw', false);
     if (usedTool === 'brush') {
       updateTimeline();
-    } else if (usedTool === 'erase') {
+    } else if (usedTool === 'eraser') {
       updateTimeline();
     } else if (usedTool === 'crop') {
       if (!cropping) {
@@ -140,10 +140,13 @@ function init() {
       }
     } else if (usedTool === 'rect') {
       finalizeRectangle();
+      updateTimeline();
     } else if (usedTool === 'circle') {
       finalizeElipse();
+      updateTimeline();
     } else if (usedTool === 'triangle') {
       finalizeTriangle();
+      updateTimeline();
     }
   }
 
@@ -508,50 +511,54 @@ function init() {
 
     const selectedShapes: Shape[] = [];
     currentLayer.shapes.forEach((shape) => {
-
-      const point = MV.vec2(shape.vertexData[0], shape.vertexData[1]);
-      if ( // point in bounding rectangle
-        point[0] > ((selectionRectTopLeft.x/canvas.width)*2)-1
-        && point[0] < ((selectionRectBotRight.x/canvas.width)*2)-1
-        && point[1] > ((selectionRectBotRight.y/canvas.height)*2)-1
-        && point[1] < ((selectionRectTopLeft.y/canvas.height)*2)-1
-      ) {
-        console.log('found', point)
-        
-        const existingBoundingRect = { 
-          x1: shape.boundingRectData[0], // BotLeft
-          y1: shape.boundingRectData[1],
-          x2: shape.boundingRectData[0] + shape.boundingRectData[2], // TopRight
-          y2: shape.boundingRectData[1] + shape.boundingRectData[3],
+      if (shape.type === 'point') {
+        for (let i = 0; i < shape.vertexData.length; i+=2) {
+          const point = MV.vec2(shape.vertexData[i], shape.vertexData[i+1]);
+          if ( // point in bounding rectangle
+            point[0] > ((selectionRectTopLeft.x/canvas.width)*2)-1
+            && point[0] < ((selectionRectBotRight.x/canvas.width)*2)-1
+            && point[1] > ((selectionRectBotRight.y/canvas.height)*2)-1
+            && point[1] < ((selectionRectTopLeft.y/canvas.height)*2)-1
+          ) {
+            console.log('found', point)
+            
+            const existingBoundingRect = { 
+              x1: shape.boundingRectData[0], // BotLeft
+              y1: shape.boundingRectData[1],
+              x2: shape.boundingRectData[0] + shape.boundingRectData[2], // TopRight
+              y2: shape.boundingRectData[1] + shape.boundingRectData[3],
+            }
+            
+            const selectionRect = {
+              x1: selectionRectTopLeft.x,
+              y1: selectionRectBotRight.y,
+              x2: selectionRectTopLeft.x + (selectionRectBotRight.x - selectionRectTopLeft.x),
+              y2: selectionRectBotRight.y + (selectionRectTopLeft.y - selectionRectBotRight.y),
+            }
+            
+            let mostRightX1 = selectionRect.x1>existingBoundingRect.x1?selectionRect.x1:existingBoundingRect.x1;
+            let mostTopY1 = selectionRect.y1>existingBoundingRect.y1?selectionRect.y1:existingBoundingRect.y1;
+            let mostLeftX2 = selectionRect.x2<existingBoundingRect.x2?selectionRect.x2:existingBoundingRect.x2;
+            let mostBottomY2 = selectionRect.y2<existingBoundingRect.y2?selectionRect.y2:existingBoundingRect.y2;
+            
+            selectedShapes.push({
+              vertexData: [...shape.vertexData],
+              colorData: [...shape.colorData],
+              brushSize: [...shape.brushSize],
+              boundingRectData: [
+                mostRightX1,
+                mostTopY1,
+                Math.abs(mostLeftX2 - mostRightX1),
+                Math.abs(mostBottomY2 - mostTopY1),
+              ],
+              type: shape.type,
+            });
+    
+            croppingLayer.shapes = selectedShapes;
+            StateManager.getInstance().setState('cropping-layer', croppingLayer);
+            continue;
+          }
         }
-        
-        const selectionRect = {
-          x1: selectionRectTopLeft.x,
-          y1: selectionRectBotRight.y,
-          x2: selectionRectTopLeft.x + (selectionRectBotRight.x - selectionRectTopLeft.x),
-          y2: selectionRectBotRight.y + (selectionRectTopLeft.y - selectionRectBotRight.y),
-        }
-        
-        let mostRightX1 = selectionRect.x1>existingBoundingRect.x1?selectionRect.x1:existingBoundingRect.x1;
-        let mostTopY1 = selectionRect.y1>existingBoundingRect.y1?selectionRect.y1:existingBoundingRect.y1;
-        let mostLeftX2 = selectionRect.x2<existingBoundingRect.x2?selectionRect.x2:existingBoundingRect.x2;
-        let mostBottomY2 = selectionRect.y2<existingBoundingRect.y2?selectionRect.y2:existingBoundingRect.y2;
-        
-        selectedShapes.push({
-          vertexData: [...shape.vertexData],
-          colorData: [...shape.colorData],
-          brushSize: [...shape.brushSize],
-          boundingRectData: [
-            mostRightX1,
-            mostTopY1,
-            Math.abs(mostLeftX2 - mostRightX1),
-            Math.abs(mostBottomY2 - mostTopY1),
-          ],
-          type: 'point',
-        });
-
-        croppingLayer.shapes = selectedShapes;
-        StateManager.getInstance().setState('cropping-layer', croppingLayer);
       }
     });
   }
@@ -564,8 +571,10 @@ function init() {
       return;
 
     croppingLayer.shapes.forEach((shape: Shape) => {
-      shape.vertexData[0] += delta.x/canvas.width*2;
-      shape.vertexData[1] += delta.y/canvas.height*2;
+      for (let i = 0; i < shape.vertexData.length; i+=2) {
+        shape.vertexData[i] += delta.x/canvas.width*2;
+        shape.vertexData[i+1] += delta.y/canvas.height*2;
+      }
       shape.boundingRectData[0] += delta.x;
       shape.boundingRectData[1] += delta.y;
     });
@@ -596,24 +605,73 @@ function init() {
     const layers = StateManager.getInstance().getState('layers');
     const croppingLayer = StateManager.getInstance().getState('cropping-layer');
     let i = 0;
+    let lastRenderingEndIndex = 0;
 
-    croppingLayer.shapes.forEach((shape: Shape) => {
-      gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-      gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 3 * i, MV.flatten([shape.vertexData, 100/1000]));
+    croppingLayer.shapes.forEach((shape: Shape, shapeIndex: number) => {
+          gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+          for (let k = 0; k < shape.vertexData.length; k+=2) {
+            gl.bufferSubData(gl.ARRAY_BUFFER, (4 * 3 * i) + ((k/2)*3*4), MV.flatten([shape.vertexData.slice(k, k+2), 100/1000]));
+          }
+        
+          gl.bindBuffer(gl.ARRAY_BUFFER, brushSizeBuffer);
+          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * i, MV.flatten([...shape.brushSize]));
+          
+          gl.bindBuffer(gl.ARRAY_BUFFER, bindingRectBuffer);
+          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 4 * i, MV.flatten(shape.boundingRectData));
+          
+          gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+          gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 4 * i, MV.flatten(shape.colorData));
+            
+          if (shape.type === 'point') {
+            i++;
+          } else if (shape.type === 'dotted-rectangle' || shape.type === 'rectangle') {
+            i+=4;
+          } else if (shape.type === 'dotted-triangle' || shape.type === 'triangle') {
+            i+=3;
+          } else if (shape.type === 'dotted-elipse' || shape.type === 'elipse') {
+            i+=32;
+          }
+          
+          const nextShapeType = croppingLayer.shapes[shapeIndex+1]?.type;
+          if (nextShapeType !== shape.type || shapeIndex === croppingLayer.shapes.length - 1) {
+            if (shape.type === 'point'){
+              gl.drawArrays(gl.POINTS, lastRenderingEndIndex, (i - 1 - lastRenderingEndIndex));
+            } else if (shape.type === 'dotted-rectangle'){
+              const numRectangles = (i - lastRenderingEndIndex) / 4;
+              for (let r = 0; r < numRectangles; r++) {
+                gl.drawArrays(gl.LINE_LOOP, lastRenderingEndIndex + 4 * r, 4);
+              }
+            } else if (shape.type === 'rectangle') {
+              const numRectangles = (i - lastRenderingEndIndex) / 4;
+              for (let r = 0; r < numRectangles; r++) {
+                gl.drawArrays(gl.TRIANGLE_FAN, lastRenderingEndIndex + 4 * r, 4);
+              }
+            } else if (shape.type === 'dotted-triangle') {
+              const numTriangles = (i - lastRenderingEndIndex) / 3;
+              for (let t = 0; t < numTriangles; t++) {
+                gl.drawArrays(gl.LINE_LOOP, lastRenderingEndIndex + 3 * t, 3);
+              }
+            } else if (shape.type === 'triangle') {
+              const numTriangles = (i - lastRenderingEndIndex) / 3;
+              for (let t = 0; t < numTriangles; t++) {
+                gl.drawArrays(gl.TRIANGLES, lastRenderingEndIndex + 3 * t, 3);
+              }
+            } else if (shape.type === 'dotted-elipse') {
+              const numElipses = (i - lastRenderingEndIndex) / 32;
+              for (let t = 0; t < numElipses; t++) {
+                gl.drawArrays(gl.LINE_LOOP, lastRenderingEndIndex + 32 * t, 32);
+              }
+            } else if (shape.type === 'elipse') {
+              const numElipses = (i - lastRenderingEndIndex) / 32;
+              for (let t = 0; t < numElipses; t++) {
+                gl.drawArrays(gl.TRIANGLE_FAN, lastRenderingEndIndex + 32 * t, 32);
+              }
+            }
 
-      gl.bindBuffer(gl.ARRAY_BUFFER, brushSizeBuffer);
-      gl.bufferSubData(gl.ARRAY_BUFFER, 4 * i, MV.flatten([shape.brushSize]));
-      
-      gl.bindBuffer(gl.ARRAY_BUFFER, bindingRectBuffer);
-      gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 4 * i, MV.flatten(shape.boundingRectData));
-      
-      gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-      gl.bufferSubData(gl.ARRAY_BUFFER, 4 * 4 * i, MV.flatten(shape.colorData));
-      
-      i++;
+            lastRenderingEndIndex = i;
+          }
     });
 
-    let lastRenderingEndIndex = 0;
     if (layers) {
       layers.forEach((layer: Layer, layerIndex: number) => {
         if(!layer.visible)
