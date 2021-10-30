@@ -18,7 +18,7 @@ export function addAttribute(gl: WebGLRenderingContext, program: any, attributeN
 }
 
 /**
- * Taken from https://convertingcolors.com/blog/article/convert_hex_to_rgb_with_javascript.html
+ * Src = https://convertingcolors.com/blog/article/convert_hex_to_rgb_with_javascript.html
  */
 export function convertToRGB(hexColor: string) {
     if (hexColor.length != 6) {
@@ -38,7 +38,7 @@ export function convertToRGB(hexColor: string) {
 }
 
 /**
- * src https://stackoverflow.com/questions/5623838/rgb-to-hex-and-hex-to-rgb
+ * src = https://stackoverflow.com/questions/5623838/rgb-to-hex-and-hex-to-rgb
  * @param r 
  * @param g 
  * @param b 

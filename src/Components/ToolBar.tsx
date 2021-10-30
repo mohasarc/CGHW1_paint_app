@@ -32,7 +32,9 @@ export default function ToolBar() {
     );
 }
 
-// Src = https://stackoverflow.com/questions/19721439/download-json-object-as-a-file-from-browser
+/**
+ * Src = https://stackoverflow.com/questions/19721439/download-json-object-as-a-file-from-browser
+ */
 function downloadObjectAsJson() {
     const data = StateManager.getInstance().serialize();
     const exportName = 'Drawing';
@@ -46,6 +48,10 @@ function downloadObjectAsJson() {
     downloadAnchorNode.remove();
 }
 
+/**
+ * Reads the selected file
+ * @param event 
+ */
 function changeHandler(event: any) {
     const fileReader = new FileReader();
 
@@ -57,6 +63,9 @@ function changeHandler(event: any) {
     fileReader.readAsText(event.target.files[0]);
 };
 
+/**
+ * 
+ */
 function undo() {
     const curTimelineNode = StateManager.getInstance().getState('cur-timeline-node');
     const timeLine = StateManager.getInstance().getState('timeline');
@@ -66,6 +75,9 @@ function undo() {
     }
 }
 
+/**
+ * 
+ */
 function redo() {
     const curTimelineNode = StateManager.getInstance().getState('cur-timeline-node');
     const timeLine = StateManager.getInstance().getState('timeline');

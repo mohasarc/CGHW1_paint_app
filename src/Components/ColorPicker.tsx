@@ -7,6 +7,7 @@ import * as UTILS from '../Common/webgl-utils';
 import { colorPickerShaders } from '../shaders';
 import { StateManager } from "../util/StateManager";
 import { addAttribute, convertToRGB } from '../util/webglHelpers';
+import Point2D from "../util/Point2D";
 
 const colors = [
     MV.vec4(0.0, 0.0, 0.0, 1.0),  // black
@@ -38,7 +39,6 @@ export default function ColorPicker() {
     useEffect(initSaturationCanvas);
     useEffect(initHueCanvas);
     const preferredColors = ['#41b96c', '#06c1d9', '#fed37a', '#e45b06', '#06486c', '#534430', '#eb4956', '#b838ed'];
-
 
     return (
         <div>
@@ -80,7 +80,7 @@ function handlePreferredColorsButtonEvent(event: any) {
 }
 
 function initHueCanvas() {
-    /******************* INIT WEBGL RENDERING CONTEXT ******************/
+    /***** Init WebGL context *****/
     const hueCanvas: any = document.getElementById('hue-canvas');
     const saturationCanvas: any = document.getElementById('saturation-canvas');
     if (!hueCanvas || !saturationCanvas) throw new Error('Couldn\'t find the canvas');
@@ -102,12 +102,22 @@ function initHueCanvas() {
     if (colorBuffer)
         addAttribute(gl, program, 'vColor', colorBuffer, 14, 4, gl.FLOAT);
 
+    /***** Init events *****/
+    let pick = false;
+    hueCanvas.addEventListener('mousedown', () => {
+        pick = true;
+    });
+
+    hueCanvas.addEventListener('mouseup', () => { pick = false });
+    hueCanvas.addEventListener("mousemove", (event: any) => { if (pick) pickColor({ x: event.clientX, y: event.clientY }) });
+    hueCanvas.addEventListener('click', (event: any) => { pickColor({ x: event.clientX, y: event.clientY }) });
+
+    /***** Setup the hue colors *****/
     const rects = [];
     const rectsColors = [];
     for (let w = -1, i = 0; w < 1; w += 2 / 6, i++) {
         rects.push(MV.vec2(w, 1), MV.vec2(w, -1));
         rectsColors.push(MV.vec4(colors[i % 6 + 1]), MV.vec4(colors[i % 6 + 1]));
-
     }
 
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
@@ -116,48 +126,33 @@ function initHueCanvas() {
     gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, MV.flatten(rectsColors));
 
-    /*************************** INIT EVENTS ***************************/
-    let pick = false;
-    hueCanvas.addEventListener('mousedown', () => {
-        pick = true;
-    });
+    /***** Start the rendering loop *****/
+    render();
 
-    hueCanvas.addEventListener('mouseup', () => {
-        pick = false
-    });
-
-    hueCanvas.addEventListener("mousemove", (event: any) => {
-        if (pick) {
-            pickColor(event.clientX, event.clientY);
-        }
-    });
-
-    hueCanvas.addEventListener('click', (event: any) => {
-        pickColor(event.clientX, event.clientY);
-    });
-
-    function pickColor(pointerX: number, pointerY: number) {
-        var clickedPos = MV.vec2(pointerX - hueCanvas.offsetLeft,
-            hueCanvas.height - pointerY + hueCanvas.offsetTop);
+    /***** Inner functions defenitions *****/
+    /**
+     * Based on the click posotion, a hue value is selected
+    */
+    function pickColor(pos: Point2D) {
+        var clickedPos = MV.vec2(pos.x - hueCanvas.offsetLeft,
+            hueCanvas.height - pos.y + hueCanvas.offsetTop);
 
         let pixel = new Uint8Array(4);
         gl.readPixels(clickedPos[0], clickedPos[1], 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
         StateManager.getInstance().setState('hue-picked', [pixel[0] / 255, pixel[1] / 255, pixel[2] / 255, pixel[3] / 255]);
         StateManager.getInstance().setState('hue-pos', clickedPos[0] / hueCanvas.width);
         StateManager.getInstance().setState('picked-color', [pixel[0] / 255, pixel[1] / 255, pixel[2] / 255, pixel[3] / 255]);
-        StateManager.getInstance().setState('color-picker-pos', { x: pointerX, y: saturationCanvas.offsetTop + saturationCanvas.height })
-        console.log('Hue-picked: ', StateManager.getInstance().getState('hue-picked'));
+        StateManager.getInstance().setState('color-picker-pos', { x: pos.x, y: saturationCanvas.offsetTop + saturationCanvas.height })
     }
 
-    /***************************** RENDER ******************************/
-    (function render() {
+    function render() {
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 14);
-    })();
+    };
 }
 
 function initSaturationCanvas() {
-    /******************* INIT WEBGL RENDERING CONTEXT ******************/
+    /***** Init WebGL context *****/
     const saturationCanvas: any = document.getElementById('saturation-canvas');
     const selectorCircle: any = document.getElementById('selector-circle');
     if (!saturationCanvas || !selectorCircle) throw new Error('Couldn\'t find the canvas');
@@ -179,33 +174,38 @@ function initSaturationCanvas() {
     if (colorBuffer)
         addAttribute(gl, program, 'vColor', colorBuffer, 3, 4, gl.FLOAT);
 
-    /*************************** INIT EVENTS ***************************/
+    /***** Init events *****/
     let pick = false;
     saturationCanvas.addEventListener('mousedown', () => { pick = true });
     saturationCanvas.addEventListener('mouseup', () => { pick = false });
-    saturationCanvas.addEventListener('mousemove', (event: any) => {
-        if (pick) { pickTheColor(event) }
-    });
-    saturationCanvas.addEventListener('click', pickTheColor);
+    saturationCanvas.addEventListener('mousemove', (event: any) => { if (pick) pickTheColor({ x: event.clientX, y: event.clientY }) });
+    saturationCanvas.addEventListener('click', (event: any) => {pickTheColor({ x: event.clientX, y: event.clientY })});
 
     selectorCircle.addEventListener('mousedown', () => { pick = true });
     selectorCircle.addEventListener('mouseup', () => { pick = false });
-    selectorCircle.addEventListener('click', pickTheColor)
-    selectorCircle.addEventListener('mousemove', (event: any) => {
-        if (pick) { pickTheColor(event) }
-    });
+    selectorCircle.addEventListener('mousemove', (event: any) => { if (pick) pickTheColor({ x: event.clientX, y: event.clientY }) });
+    selectorCircle.addEventListener('click', (event: any) => {pickTheColor({ x: event.clientX, y: event.clientY })})
 
-    function pickTheColor(event: any) {
-        var clickedPos = MV.vec2(event.clientX - saturationCanvas.offsetLeft,
-            saturationCanvas.height - event.clientY + saturationCanvas.offsetTop);
+    /***** Start the rendering loop *****/
+    StateManager.getInstance().subscribe('hue-picked', render);
+    StateManager.getInstance().subscribe('hue-pos', render);
+    render();
+
+    /***** Inner functions defenitions *****/
+    /**
+     * Based on the click position, a color will be selected
+     * @param event 
+     */
+    function pickTheColor(pos: Point2D) {
+        var clickedPos = MV.vec2(pos.x - saturationCanvas.offsetLeft,
+            saturationCanvas.height - pos.y + saturationCanvas.offsetTop);
 
         let pixel = new Uint8Array(4);
         gl.readPixels(clickedPos[0], clickedPos[1], 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
         StateManager.getInstance().setState('picked-color', [pixel[0] / 255, pixel[1] / 255, pixel[2] / 255, pixel[3] / 255]);
-        StateManager.getInstance().setState('color-picker-pos', { x: event.clientX, y: event.clientY })
+        StateManager.getInstance().setState('color-picker-pos', { x: pos.x, y: pos.y })
     }
 
-    /***************************** RENDER ******************************/
     function render() {
         gl.clear(gl.COLOR_BUFFER_BIT);
 
@@ -219,8 +219,4 @@ function initSaturationCanvas() {
 
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 3);
     }
-
-    StateManager.getInstance().subscribe('hue-picked', render);
-    StateManager.getInstance().subscribe('hue-pos', render);
-    render();
 }
