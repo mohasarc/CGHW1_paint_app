@@ -26,7 +26,7 @@ export interface Shape {
     colorData: number[], // Vec4
     brushSize: number[],
     boundingRectData: number[], // Vec4
-    type: 'point' | 'triangle' | 'dotted-triangle' | 'rectangle' | 'dotted-rectangle' | 'elipse' | 'dotted-elipse',
+    type: 'point' | 'triangle' | 'nofill-triangle' | 'rectangle' | 'nofill-rectangle' | 'elipse' | 'nofill-elipse',
     center?: number[], // for elipse only
     size?: { w: number, h: number }, // for elipse only
 }
