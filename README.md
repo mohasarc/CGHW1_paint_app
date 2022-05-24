@@ -9,4 +9,4 @@
 - open `./docs/index.html` with any browser
 
 ### Run the hosted vertion
-- Go to https://mohas.me/CGHW1_paint_app/
+- Go to https://mohas.me/paint_app/
