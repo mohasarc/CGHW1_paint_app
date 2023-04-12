@@ -1,4 +1,4 @@
-# CGHW1_paint_app
+# paint_app
 ### To run in development mode
 - install `Nodejs`
 - install `yarn`
